@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sites - WP-AutoHealer</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar-active { background-color: #3B82F6; color: white; }
+        .status-badge { @apply px-2 py-1 rounded-full text-xs font-medium; }
+        .status-active { @apply bg-green-100 text-green-800; }
+        .status-error { @apply bg-red-100 text-red-800; }
+        .status-warning { @apply bg-yellow-100 text-yellow-800; }
+        .status-inactive { @apply bg-gray-100 text-gray-800; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation Header -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-gray-900">
+                            <i class="fas fa-shield-alt text-blue-600 mr-2"></i>
+                            WP-AutoHealer
+                        </h1>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button class="bg-white p-1 rounded-full text-gray-400 hover:text-gray-500">
+                            <i class="fas fa-bell h-6 w-6"></i>
+                        </button>
+                        <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400"></span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <img class="h-8 w-8 rounded-full" src="https://via.placeholder.com/32" alt="User">
+                        <span class="text-sm font-medium text-gray-700">Admin User</span>
+                        <i class="fas fa-chevron-down text-gray-400"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex h-screen bg-gray-50">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white shadow-sm">
+            <nav class="mt-5 px-2">
+                <a href="index.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-tachometer-alt mr-4 h-6 w-6"></i>
+                    Dashboard
+                </a>
+                <a href="incidents.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-exclamation-triangle mr-4 h-6 w-6"></i>
+                    Incidents
+                    <span class="ml-auto bg-red-100 text-red-600 py-0.5 px-2 rounded-full text-xs">3</span>
+                </a>
+                <a href="#" class="sidebar-active group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-globe mr-4 h-6 w-6"></i>
+                    Sites
+                </a>
+                <a href="servers.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-server mr-4 h-6 w-6"></i>
+                    Servers
+                </a>
+                <a href="#" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-cog mr-4 h-6 w-6"></i>
+                    Policies
+                </a>
+                <a href="#" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-plug mr-4 h-6 w-6"></i>
+                    Integrations
+                </a>
+                <a href="#" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-users mr-4 h-6 w-6"></i>
+                    Users & Roles
+                </a>
+                <a href="#" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-clipboard-list mr-4 h-6 w-6"></i>
+                    Audit Log
+                </a>
+                <a href="settings.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-sliders-h mr-4 h-6 w-6"></i>
+                    Settings
+                </a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <div class="py-6">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                    <div class="flex justify-between items-center">
+                        <h1 class="text-2xl font-semibold text-gray-900">WordPress Sites</h1>
+                        <button class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center">
+                            <i class="fas fa-plus mr-2"></i>
+                            Add New Site
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                    <!-- Stats Cards -->
+                    <div class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-4">
+                        <div class="bg-white overflow-hidden shadow rounded-lg">
+                            <div class="p-5">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-globe text-blue-400 h-6 w-6"></i>
+                                    </div>
+                                    <div class="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt class="text-sm font-medium text-gray-500 truncate">Total Sites</dt>
+                                            <dd class="text-lg font-medium text-gray-900">24</dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white overflow-hidden shadow rounded-lg">
+                            <div class="p-5">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-check-circle text-green-400 h-6 w-6"></i>
+                                    </div>
+                                    <div class="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt class="text-sm font-medium text-gray-500 truncate">Healthy</dt>
+                                            <dd class="text-lg font-medium text-gray-900">21</dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white overflow-hidden shadow rounded-lg">
+                            <div class="p-5">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-exclamation-triangle text-red-400 h-6 w-6"></i>
+                                    </div>
+                                    <div class="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt class="text-sm font-medium text-gray-500 truncate">Issues</dt>
+                                            <dd class="text-lg font-medium text-gray-900">3</dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white overflow-hidden shadow rounded-lg">
+                            <div class="p-5">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-pause-circle text-gray-400 h-6 w-6"></i>
+                                    </div>
+                                    <div class="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt class="text-sm font-medium text-gray-500 truncate">Inactive</dt>
+                                            <dd class="text-lg font-medium text-gray-900">0</dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="mt-6 bg-white shadow rounded-lg p-4">
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Status</label>
+                                <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                                    <option>All Statuses</option>
+                                    <option>Healthy</option>
+                                    <option>Issues</option>
+                                    <option>Inactive</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Server</label>
+                                <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                                    <option>All Servers</option>
+                                    <option>prod-web-01</option>
+                                    <option>prod-web-02</option>
+                                    <option>staging-01</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">WordPress Version</label>
+                                <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                                    <option>All Versions</option>
+                                    <option>6.4.x</option>
+                                    <option>6.3.x</option>
+                                    <option>6.2.x</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Search</label>
+                                <input type="text" placeholder="Search sites..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sites Grid -->
+                    <div class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        <!-- Site Card 1 -->
+                        <div class="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow">
+                            <div class="p-6">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0">
+                                            <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
+                                                <i class="fas fa-exclamation-triangle text-red-600"></i>
+                                            </div>
+                                        </div>
+                                        <div class="ml-4">
+                                            <h3 class="text-lg font-medium text-gray-900">example.com</h3>
+                                            <p class="text-sm text-gray-500">WordPress 6.4.2</p>
+                                        </div>
+                                    </div>
+                                    <span class="status-badge status-error">Issues</span>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <dl class="grid grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <dt class="text-gray-500">Server</dt>
+                                            <dd class="text-gray-900">prod-web-01</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="text-gray-500">Last Check</dt>
+                                            <dd class="text-gray-900">2 min ago</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="text-gray-500">Incidents</dt>
+                                            <dd class="text-red-600 font-medium">1 Active</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="text-gray-500">Multisite</dt>
+                                            <dd class="text-gray-900">No</dd>
+                                        </div>
+                                    </dl>
+                                </div>
+                                
+                                <div class="mt-6 flex space-x-3">
+                                    <button class="flex-1 bg-blue-600 text-white px-3 py-2 rounded-md text-sm hover:bg-blue-700">
+                                        <i class="fas fa-eye mr-1"></i>
+                                        View Details
+                                    </button>
+                                    <button class="flex-1 bg-gray-600 text-white px-3 py-2 rounded-md text-sm hover:bg-gray-700">
+                                        <i class="fas fa-play mr-1"></i>
+                                        Health Check
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Site Card 2 -->
+                        <div class="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow">
+                            <div class="p-6">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0">
+                                            <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                                                <i class="fas fa-check text-green-600"></i>
+                                            </div>
+                                        </div>
+                                        <div class="ml-4">
+                                            <h3 class="text-lg font-medium text-gray-900">shop.example.com</h3>
+                                            <p class="text-sm text-gray-500">WordPress 6.4.2 + WooCommerce</p>
+                                        </div>
+                                    </div>
+                                    <span class="status-badge status-active">Healthy</span>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <dl class="grid grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <dt class="text-gray-500">Server</dt>
+                                            <dd class="text-gray-900">prod-web-01</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="text-gray-500">Last Check</dt>
+                                            <dd class="text-gray-900">5 min ago</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="text-gray-500">Incidents</dt>
+                                            <dd class="text-green-600 font-medium">0 Active</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="text-gray-500">Multisite</dt>
+                                            <dd class="text-gray-900">No</dd>
+                                        </div>
+                                    </dl>
+                                </div>
+                                
+                                <div class="mt-6 flex space-x-3">
+                                    <button class="flex-1 bg-blue-600 text-white px-3 py-2 rounded-md text-sm hover:bg-blue-700">
+                                        <i class="fas fa-eye mr-1"></i>
+                                        View Details
+                                    </button>
+                                    <button class="flex-1 bg-gray-600 text-white px-3 py-2 rounded-md text-sm hover:bg-gray-700">
+                                        <i class="fas fa-play mr-1"></i>
+                                        Health Check
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Site Card 3 -->
+                        <div class="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow">
+                            <div class="p-6">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0">
+                                            <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                                                <i class="fas fa-check text-green-600"></i>
+                                            </div>
+                                        </div>
+                                        <div class="ml-4">
+                                            <h3 class="text-lg font-medium text-gray-900">blog.example.com</h3>
+                                            <p class="text-sm text-gray-500">WordPress 6.4.2 Multisite</p>
+                                        </div>
+                                    </div>
+                                    <span class="status-badge status-active">Healthy</span>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <dl class="grid grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <dt class="text-gray-500">Server</dt>
+                                            <dd class="text-gray-900">prod-web-02</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="text-gray-500">Last Check</dt>
+                                            <dd class="text-gray-900">3 min ago</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="text-gray-500">Incidents</dt>
+                                            <dd class="text-green-600 font-medium">0 Active</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="text-gray-500">Multisite</dt>
+                                            <dd class="text-blue-600 font-medium">Yes (5 sites)</dd>
+                                        </div>
+                                    </dl>
+                                </div>
+                                
+                                <div class="mt-6 flex space-x-3">
+                                    <button class="flex-1 bg-blue-600 text-white px-3 py-2 rounded-md text-sm hover:bg-blue-700">
+                                        <i class="fas fa-eye mr-1"></i>
+                                        View Details
+                                    </button>
+                                    <button class="flex-1 bg-gray-600 text-white px-3 py-2 rounded-md text-sm hover:bg-gray-700">
+                                        <i class="fas fa-play mr-1"></i>
+                                        Health Check
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Add Site Card -->
+                        <div class="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow border-2 border-dashed border-gray-300">
+                            <div class="p-6 text-center">
+                                <div class="mx-auto h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
+                                    <i class="fas fa-plus text-gray-400 text-xl"></i>
+                                </div>
+                                <h3 class="mt-4 text-lg font-medium text-gray-900">Add New Site</h3>
+                                <p class="mt-2 text-sm text-gray-500">Monitor a new WordPress site with WP-AutoHealer</p>
+                                <button class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                                    Get Started
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="mt-6 bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 rounded-lg shadow">
+                        <div class="flex-1 flex justify-between sm:hidden">
+                            <button class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Previous</button>
+                            <button class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Next</button>
+                        </div>
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-gray-700">
+                                    Showing <span class="font-medium">1</span> to <span class="font-medium">12</span> of <span class="font-medium">24</span> sites
+                                </p>
+                            </div>
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                                    <button class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <button class="bg-blue-50 border-blue-500 text-blue-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium">1</button>
+                                    <button class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">2</button>
+                                    <button class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

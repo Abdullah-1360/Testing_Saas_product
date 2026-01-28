@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WP-AutoHealer - Control Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar-active { background-color: #3B82F6; color: white; }
+        .status-badge { @apply px-2 py-1 rounded-full text-xs font-medium; }
+        .status-active { @apply bg-green-100 text-green-800; }
+        .status-error { @apply bg-red-100 text-red-800; }
+        .status-warning { @apply bg-yellow-100 text-yellow-800; }
+        .status-processing { @apply bg-blue-100 text-blue-800; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation Header -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-gray-900">
+                            <i class="fas fa-shield-alt text-blue-600 mr-2"></i>
+                            WP-AutoHealer
+                        </h1>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button class="bg-white p-1 rounded-full text-gray-400 hover:text-gray-500">
+                            <i class="fas fa-bell h-6 w-6"></i>
+                        </button>
+                        <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400"></span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <img class="h-8 w-8 rounded-full" src="https://via.placeholder.com/32" alt="User">
+                        <span class="text-sm font-medium text-gray-700">Admin User</span>
+                        <i class="fas fa-chevron-down text-gray-400"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex h-screen bg-gray-50">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white shadow-sm">
+            <nav class="mt-5 px-2">
+                <a href="#" class="sidebar-active group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-tachometer-alt mr-4 h-6 w-6"></i>
+                    Dashboard
+                </a>
+                <a href="incidents.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-exclamation-triangle mr-4 h-6 w-6"></i>
+                    Incidents
+                    <span class="ml-auto bg-red-100 text-red-600 py-0.5 px-2 rounded-full text-xs">3</span>
+                </a>
+                <a href="sites.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-globe mr-4 h-6 w-6"></i>
+                    Sites
+                </a>
+                <a href="servers.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-server mr-4 h-6 w-6"></i>
+                    Servers
+                </a>
+                <a href="#" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-cog mr-4 h-6 w-6"></i>
+                    Policies
+                </a>
+                <a href="#" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-plug mr-4 h-6 w-6"></i>
+                    Integrations
+                </a>
+                <a href="#" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-users mr-4 h-6 w-6"></i>
+                    Users & Roles
+                </a>
+                <a href="#" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-clipboard-list mr-4 h-6 w-6"></i>
+                    Audit Log
+                </a>
+                <a href="settings.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-sliders-h mr-4 h-6 w-6"></i>
+                    Settings
+                </a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <div class="py-6">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                    <h1 class="text-2xl font-semibold text-gray-900">Dashboard</h1>
+                </div>
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                    <!-- Stats Cards -->
+                    <div class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                        <div class="bg-white overflow-hidden shadow rounded-lg">
+                            <div class="p-5">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-globe text-gray-400 h-6 w-6"></i>
+                                    </div>
+                                    <div class="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt class="text-sm font-medium text-gray-500 truncate">Total Sites</dt>
+                                            <dd class="text-lg font-medium text-gray-900">24</dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white overflow-hidden shadow rounded-lg">
+                            <div class="p-5">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-check-circle text-green-400 h-6 w-6"></i>
+                                    </div>
+                                    <div class="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt class="text-sm font-medium text-gray-500 truncate">Healthy Sites</dt>
+                                            <dd class="text-lg font-medium text-gray-900">21</dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white overflow-hidden shadow rounded-lg">
+                            <div class="p-5">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-exclamation-triangle text-red-400 h-6 w-6"></i>
+                                    </div>
+                                    <div class="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt class="text-sm font-medium text-gray-500 truncate">Active Incidents</dt>
+                                            <dd class="text-lg font-medium text-gray-900">3</dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white overflow-hidden shadow rounded-lg">
+                            <div class="p-5">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-tools text-blue-400 h-6 w-6"></i>
+                                    </div>
+                                    <div class="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt class="text-sm font-medium text-gray-500 truncate">Auto-Fixes Today</dt>
+                                            <dd class="text-lg font-medium text-gray-900">12</dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Incidents -->
+                    <div class="mt-8">
+                        <div class="bg-white shadow overflow-hidden sm:rounded-md">
+                            <div class="px-4 py-5 sm:px-6">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900">Recent Incidents</h3>
+                                <p class="mt-1 max-w-2xl text-sm text-gray-500">Latest WordPress site incidents and their status</p>
+                            </div>
+                            <ul class="divide-y divide-gray-200">
+                                <li>
+                                    <div class="px-4 py-4 flex items-center justify-between">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
+                                                    <i class="fas fa-exclamation-triangle text-red-600"></i>
+                                                </div>
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">example.com</div>
+                                                <div class="text-sm text-gray-500">Fatal error in wp-config.php</div>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <span class="status-badge status-processing">Processing</span>
+                                            <span class="text-sm text-gray-500">2 min ago</span>
+                                        </div>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="px-4 py-4 flex items-center justify-between">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                                                    <i class="fas fa-check text-green-600"></i>
+                                                </div>
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">shop.example.com</div>
+                                                <div class="text-sm text-gray-500">Plugin conflict resolved</div>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <span class="status-badge status-active">Fixed</span>
+                                            <span class="text-sm text-gray-500">15 min ago</span>
+                                        </div>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="px-4 py-4 flex items-center justify-between">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <div class="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center">
+                                                    <i class="fas fa-exclamation text-yellow-600"></i>
+                                                </div>
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">blog.example.com</div>
+                                                <div class="text-sm text-gray-500">Database connection timeout</div>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <span class="status-badge status-warning">Escalated</span>
+                                            <span class="text-sm text-gray-500">1 hour ago</span>
+                                        </div>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- System Health -->
+                    <div class="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
+                        <div class="bg-white shadow rounded-lg p-6">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">System Health</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-600">Job Queue</span>
+                                    <span class="status-badge status-active">Healthy</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-600">Database</span>
+                                    <span class="status-badge status-active">Connected</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-600">SSH Connections</span>
+                                    <span class="status-badge status-active">5/10 Active</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-600">Data Retention</span>
+                                    <span class="status-badge status-active">3 days</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white shadow rounded-lg p-6">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+                            <div class="space-y-3">
+                                <button class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center">
+                                    <i class="fas fa-plus mr-2"></i>
+                                    Add New Site
+                                </button>
+                                <button class="w-full bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center justify-center">
+                                    <i class="fas fa-server mr-2"></i>
+                                    Add Server
+                                </button>
+                                <button class="w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center justify-center">
+                                    <i class="fas fa-play mr-2"></i>
+                                    Run Health Check
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

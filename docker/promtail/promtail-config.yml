@@ -1,0 +1,114 @@
+# Promtail Configuration for WP-AutoHealer Log Shipping
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # WP-AutoHealer Application Logs
+  - job_name: wp-autohealer-app
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: wp-autohealer-app
+          service: backend
+          __path__: /var/log/app/*.log
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            message: message
+            context: context
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+      - labels:
+          level:
+          service:
+
+  # Nginx Access Logs
+  - job_name: nginx-access
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: nginx-access
+          service: nginx
+          __path__: /var/log/nginx/access.log
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<remote_addr>[\w\.]+) - (?P<remote_user>\S+) \[(?P<time_local>[^\]]+)\] "(?P<method>\S+) (?P<request_uri>\S+) (?P<server_protocol>\S+)" (?P<status>\d+) (?P<body_bytes_sent>\d+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)"'
+      - timestamp:
+          source: time_local
+          format: 02/Jan/2006:15:04:05 -0700
+      - labels:
+          method:
+          status:
+          service:
+
+  # Nginx Error Logs
+  - job_name: nginx-error
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: nginx-error
+          service: nginx
+          __path__: /var/log/nginx/error.log
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) \[(?P<level>\w+)\] (?P<pid>\d+)#(?P<tid>\d+): (?P<message>.*)'
+      - timestamp:
+          source: timestamp
+          format: 2006/01/02 15:04:05
+      - labels:
+          level:
+          service:
+
+  # System Logs (if available)
+  - job_name: system-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: system-logs
+          service: system
+          __path__: /var/log/host/syslog
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\w{3} \d{1,2} \d{2}:\d{2}:\d{2}) (?P<hostname>\S+) (?P<service>\S+): (?P<message>.*)'
+      - timestamp:
+          source: timestamp
+          format: Jan 02 15:04:05
+      - labels:
+          hostname:
+          service:
+
+  # Docker Container Logs (if available)
+  - job_name: docker-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: docker-logs
+          service: docker
+          __path__: /var/log/host/containers/*.log
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: time
+            message: log
+            container_name: attrs.name
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+      - labels:
+          container_name:

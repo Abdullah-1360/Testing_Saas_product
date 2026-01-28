@@ -1,0 +1,127 @@
+# Prometheus Configuration for WP-AutoHealer Security Monitoring
+# Collects metrics from application, nginx, and system components
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'wp-autohealer-monitor'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+  - "alert_rules.yml"
+  - "security_rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # WP-AutoHealer Backend Application
+  - job_name: 'wp-autohealer-backend'
+    static_configs:
+      - targets: ['backend:3000']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      format: ['prometheus']
+
+  # WP-AutoHealer Frontend Application
+  - job_name: 'wp-autohealer-frontend'
+    static_configs:
+      - targets: ['frontend:3000']
+    scrape_interval: 30s
+    metrics_path: /api/metrics
+    scrape_timeout: 10s
+
+  # Nginx Metrics (requires nginx-prometheus-exporter)
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:8080']
+    scrape_interval: 15s
+    metrics_path: /nginx_status
+    scrape_timeout: 5s
+
+  # PostgreSQL Metrics (requires postgres_exporter)
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+
+  # Redis Metrics (requires redis_exporter)
+  - job_name: 'redis-master'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+    params:
+      target: ['redis-master:6379']
+
+  # Node Exporter for system metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+
+  # cAdvisor for container metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+
+  # Fluentd metrics
+  - job_name: 'fluentd'
+    static_configs:
+      - targets: ['fluentd:24231']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+
+  # Custom security metrics endpoint
+  - job_name: 'security-metrics'
+    static_configs:
+      - targets: ['backend:3000']
+    scrape_interval: 15s
+    metrics_path: /api/v1/metrics/security
+    scrape_timeout: 10s
+    honor_labels: true
+
+# Remote write configuration (for external monitoring services)
+# remote_write:
+#   - url: "https://your-monitoring-service.com/api/v1/write"
+#     basic_auth:
+#       username: "your-username"
+#       password: "your-password"
+#     write_relabel_configs:
+#       - source_labels: [__name__]
+#         regex: 'wp_autohealer_.*'
+#         action: keep
+
+# Storage configuration
+storage:
+  tsdb:
+    path: /prometheus
+    retention.time: 30d
+    retention.size: 10GB
+    wal-compression: true

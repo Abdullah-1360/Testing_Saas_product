@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "name": "Import Sorter",
+  "description": "Automatically organizes imports at the top of files when they are edited to maintain clean, sorted import statements",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "*.ts",
+      "*.js",
+      "*.tsx",
+      "*.jsx",
+      "*.py"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Organize and sort the imports in the edited file according to the project's import organization standards: 1) Node.js built-in modules, 2) Third-party packages, 3) NestJS modules, 4) Internal modules (using path mapping), 5) Relative imports. Remove any unused imports and ensure proper grouping with blank lines between sections."
+  }
+}

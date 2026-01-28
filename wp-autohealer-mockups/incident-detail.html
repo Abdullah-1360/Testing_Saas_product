@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incident Detail - WP-AutoHealer</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar-active { background-color: #3B82F6; color: white; }
+        .tab-active { border-bottom: 2px solid #3B82F6; color: #3B82F6; }
+        .status-badge { padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
+        .status-processing { background-color: #DBEAFE; color: #1E40AF; }
+        .priority-high { background-color: #FEE2E2; color: #991B1B; }
+        .timeline-item { position: relative; padding-left: 2rem; }
+        .timeline-item::before { content: ''; position: absolute; left: 0.5rem; top: 0.5rem; width: 0.5rem; height: 0.5rem; background-color: #3B82F6; border-radius: 50%; }
+        .timeline-line { position: absolute; left: 0.75rem; top: 1rem; bottom: -1rem; width: 2px; background-color: #E5E7EB; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation Header -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-gray-900">
+                            <i class="fas fa-shield-alt text-blue-600 mr-2"></i>
+                            WP-AutoHealer
+                        </h1>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button class="bg-white p-1 rounded-full text-gray-400 hover:text-gray-500">
+                            <i class="fas fa-bell h-6 w-6"></i>
+                        </button>
+                        <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400"></span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <img class="h-8 w-8 rounded-full" src="https://via.placeholder.com/32" alt="User">
+                        <span class="text-sm font-medium text-gray-700">Admin User</span>
+                        <i class="fas fa-chevron-down text-gray-400"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex h-screen bg-gray-50">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white shadow-sm">
+            <nav class="mt-5 px-2">
+                <a href="index.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-tachometer-alt mr-4 h-6 w-6"></i>
+                    Dashboard
+                </a>
+                <a href="incidents.html" class="sidebar-active group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-exclamation-triangle mr-4 h-6 w-6"></i>
+                    Incidents
+                    <span class="ml-auto bg-red-100 text-red-600 py-0.5 px-2 rounded-full text-xs">3</span>
+                </a>
+                <a href="sites.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-globe mr-4 h-6 w-6"></i>
+                    Sites
+                </a>
+                <a href="servers.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-server mr-4 h-6 w-6"></i>
+                    Servers
+                </a>
+                <a href="policies.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-cog mr-4 h-6 w-6"></i>
+                    Policies
+                </a>
+                <a href="integrations.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-plug mr-4 h-6 w-6"></i>
+                    Integrations
+                </a>
+                <a href="users.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-users mr-4 h-6 w-6"></i>
+                    Users & Roles
+                </a>
+                <a href="audit.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-clipboard-list mr-4 h-6 w-6"></i>
+                    Audit Log
+                </a>
+                <a href="settings.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-sliders-h mr-4 h-6 w-6"></i>
+                    Settings
+                </a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <div class="py-6">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <nav class="flex" aria-label="Breadcrumb">
+                                <ol class="flex items-center space-x-4">
+                                    <li>
+                                        <a href="incidents.html" class="text-gray-400 hover:text-gray-500">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            <span class="sr-only">Incidents</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <div class="flex items-center">
+                                            <i class="fas fa-chevron-right text-gray-400 mr-4"></i>
+                                            <span class="text-sm font-medium text-gray-500">#INC-2024-001</span>
+                                        </div>
+                                    </li>
+                                </ol>
+                            </nav>
+                            <h1 class="mt-2 text-2xl font-semibold text-gray-900">Incident #INC-2024-001</h1>
+                        </div>
+                        <div class="flex space-x-3">
+                            <button class="bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 flex items-center">
+                                <i class="fas fa-pause mr-2"></i>
+                                Pause
+                            </button>
+                            <button class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 flex items-center">
+                                <i class="fas fa-arrow-up mr-2"></i>
+                                Escalate
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                    <!-- Incident Overview -->
+                    <div class="mt-6 bg-white shadow rounded-lg p-6">
+                        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Incident Details</h3>
+                                <dl class="space-y-3">
+                                    <div>
+                                        <dt class="text-sm font-medium text-gray-500">Site</dt>
+                                        <dd class="text-sm text-gray-900">example.com</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-sm font-medium text-gray-500">Status</dt>
+                                        <dd><span class="status-badge status-processing">Processing</span></dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-sm font-medium text-gray-500">Priority</dt>
+                                        <dd><span class="status-badge priority-high">High</span></dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-sm font-medium text-gray-500">Created</dt>
+                                        <dd class="text-sm text-gray-900">2024-01-26 14:32:15 UTC</dd>
+                                    </div>
+                                </dl>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Progress</h3>
+                                <dl class="space-y-3">
+                                    <div>
+                                        <dt class="text-sm font-medium text-gray-500">Current Phase</dt>
+                                        <dd class="text-sm text-gray-900">FIX_ATTEMPT</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-sm font-medium text-gray-500">Fix Attempts</dt>
+                                        <dd class="text-sm text-gray-900">3 of 15</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-sm font-medium text-gray-500">Duration</dt>
+                                        <dd class="text-sm text-gray-900">2 minutes 34 seconds</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-sm font-medium text-gray-500">Next Retry</dt>
+                                        <dd class="text-sm text-gray-900">In 30 seconds</dd>
+                                    </div>
+                                </dl>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Error Details</h3>
+                                <div class="bg-red-50 border border-red-200 rounded-md p-3">
+                                    <div class="flex">
+                                        <i class="fas fa-exclamation-triangle text-red-400 mr-2 mt-0.5"></i>
+                                        <div>
+                                            <h4 class="text-sm font-medium text-red-800">Fatal Error</h4>
+                                            <p class="text-sm text-red-700 mt-1">Parse error: syntax error, unexpected '}' in /var/www/html/wp-config.php on line 47</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabs -->
+                    <div class="mt-6">
+                        <div class="border-b border-gray-200">
+                            <nav class="-mb-px flex space-x-8">
+                                <button onclick="showTab('timeline')" class="tab-active py-2 px-1 border-b-2 font-medium text-sm" id="timeline-tab">
+                                    Timeline
+                                </button>
+                                <button onclick="showTab('commands')" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-2 px-1 border-b-2 font-medium text-sm" id="commands-tab">
+                                    Commands
+                                </button>
+                                <button onclick="showTab('evidence')" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-2 px-1 border-b-2 font-medium text-sm" id="evidence-tab">
+                                    Evidence
+                                </button>
+                                <button onclick="showTab('changes')" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-2 px-1 border-b-2 font-medium text-sm" id="changes-tab">
+                                    Changes
+                                </button>
+                                <button onclick="showTab('backups')" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-2 px-1 border-b-2 font-medium text-sm" id="backups-tab">
+                                    Backups
+                                </button>
+                                <button onclick="showTab('verification')" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-2 px-1 border-b-2 font-medium text-sm" id="verification-tab">
+                                    Verification
+                                </button>
+                                <button onclick="showTab('ticket')" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-2 px-1 border-b-2 font-medium text-sm" id="ticket-tab">
+                                    Ticket/Handoff
+                                </button>
+                            </nav>
+                        </div>
+
+                        <!-- Timeline Tab -->
+                        <div id="timeline-content" class="mt-6">
+                            <div class="bg-white shadow rounded-lg p-6">
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Incident Timeline</h3>
+                                <div class="space-y-6">
+                                    <div class="timeline-item">
+                                        <div class="timeline-line"></div>
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <h4 class="text-sm font-medium text-gray-900">Incident Created</h4>
+                                                <p class="text-sm text-gray-500 mt-1">Automatic detection triggered by health check failure</p>
+                                            </div>
+                                            <span class="text-xs text-gray-500">14:32:15</span>
+                                        </div>
+                                    </div>
+                                    <div class="timeline-item">
+                                        <div class="timeline-line"></div>
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <h4 class="text-sm font-medium text-gray-900">Discovery Phase</h4>
+                                                <p class="text-sm text-gray-500 mt-1">Environment detection completed: Ubuntu 22.04, Apache 2.4.52, PHP 8.1</p>
+                                            </div>
+                                            <span class="text-xs text-gray-500">14:32:18</span>
+                                        </div>
+                                    </div>
+                                    <div class="timeline-item">
+                                        <div class="timeline-line"></div>
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <h4 class="text-sm font-medium text-gray-900">Baseline Established</h4>
+                                                <p class="text-sm text-gray-500 mt-1">Site baseline captured: 47 files, 2.3MB total size</p>
+                                            </div>
+                                            <span class="text-xs text-gray-500">14:32:25</span>
+                                        </div>
+                                    </div>
+                                    <div class="timeline-item">
+                                        <div class="timeline-line"></div>
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <h4 class="text-sm font-medium text-gray-900">Backup Created</h4>
+                                                <p class="text-sm text-gray-500 mt-1">Rollback artifacts stored: wp-config.php backup created</p>
+                                            </div>
+                                            <span class="text-xs text-gray-500">14:32:30</span>
+                                        </div>
+                                    </div>
+                                    <div class="timeline-item">
+                                        <div class="timeline-line"></div>
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <h4 class="text-sm font-medium text-gray-900">Fix Attempt #1</h4>
+                                                <p class="text-sm text-gray-500 mt-1">Hypothesis: Syntax error in wp-config.php line 47</p>
+                                                <p class="text-sm text-red-600 mt-1">Failed: Syntax error persists</p>
+                                            </div>
+                                            <span class="text-xs text-gray-500">14:32:45</span>
+                                        </div>
+                                    </div>
+                                    <div class="timeline-item">
+                                        <div class="timeline-line"></div>
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <h4 class="text-sm font-medium text-gray-900">Fix Attempt #2</h4>
+                                                <p class="text-sm text-gray-500 mt-1">Hypothesis: Missing semicolon before line 47</p>
+                                                <p class="text-sm text-red-600 mt-1">Failed: Different syntax error detected</p>
+                                            </div>
+                                            <span class="text-xs text-gray-500">14:33:15</span>
+                                        </div>
+                                    </div>
+                                    <div class="timeline-item">
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <h4 class="text-sm font-medium text-blue-900">Fix Attempt #3 (In Progress)</h4>
+                                                <p class="text-sm text-gray-500 mt-1">Hypothesis: Restore from backup and reapply changes</p>
+                                                <p class="text-sm text-blue-600 mt-1">Processing: Restoring wp-config.php from backup</p>
+                                            </div>
+                                            <span class="text-xs text-gray-500">14:34:30</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Commands Tab -->
+                        <div id="commands-content" class="mt-6 hidden">
+                            <div class="bg-white shadow rounded-lg p-6">
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Command Executions</h3>
+                                <div class="space-y-4">
+                                    <div class="border border-gray-200 rounded-lg p-4">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <h4 class="text-sm font-medium text-gray-900">php -l /var/www/html/wp-config.php</h4>
+                                            <span class="text-xs text-gray-500">14:32:45</span>
+                                        </div>
+                                        <div class="bg-gray-50 rounded p-3">
+                                            <p class="text-xs text-gray-600 mb-1">Exit Code: 255</p>
+                                            <p class="text-xs text-red-600">PHP Parse error: syntax error, unexpected '}' in /var/www/html/wp-config.php on line 47</p>
+                                        </div>
+                                    </div>
+                                    <div class="border border-gray-200 rounded-lg p-4">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <h4 class="text-sm font-medium text-gray-900">cp /var/www/html/wp-config.php /tmp/wp-config.backup</h4>
+                                            <span class="text-xs text-gray-500">14:32:30</span>
+                                        </div>
+                                        <div class="bg-gray-50 rounded p-3">
+                                            <p class="text-xs text-green-600">Exit Code: 0</p>
+                                            <p class="text-xs text-gray-600">Backup created successfully</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Evidence Tab -->
+                        <div id="evidence-content" class="mt-6 hidden">
+                            <div class="bg-white shadow rounded-lg p-6">
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Evidence Collection</h3>
+                                <div class="space-y-4">
+                                    <div class="border border-gray-200 rounded-lg p-4">
+                                        <h4 class="text-sm font-medium text-gray-900 mb-2">Apache Error Log</h4>
+                                        <p class="text-xs text-gray-500 mb-2">Signature: PHP_PARSE_ERROR</p>
+                                        <div class="bg-gray-50 rounded p-3">
+                                            <p class="text-xs text-gray-700">[Mon Jan 26 14:32:15.123456 2024] [php:error] [pid 12345] [client 192.168.1.100:54321] PHP Parse error: syntax error, unexpected '}' in /var/www/html/wp-config.php on line 47</p>
+                                        </div>
+                                    </div>
+                                    <div class="border border-gray-200 rounded-lg p-4">
+                                        <h4 class="text-sm font-medium text-gray-900 mb-2">HTTP Response</h4>
+                                        <p class="text-xs text-gray-500 mb-2">Signature: HTTP_500_ERROR</p>
+                                        <div class="bg-gray-50 rounded p-3">
+                                            <p class="text-xs text-gray-700">HTTP/1.1 500 Internal Server Error</p>
+                                            <p class="text-xs text-gray-700">Content-Type: text/html</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Other tabs content would be similar... -->
+                        <div id="changes-content" class="mt-6 hidden">
+                            <div class="bg-white shadow rounded-lg p-6">
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">File Changes</h3>
+                                <p class="text-gray-500">No file changes made yet.</p>
+                            </div>
+                        </div>
+
+                        <div id="backups-content" class="mt-6 hidden">
+                            <div class="bg-white shadow rounded-lg p-6">
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Backup Artifacts</h3>
+                                <div class="space-y-4">
+                                    <div class="border border-gray-200 rounded-lg p-4">
+                                        <h4 class="text-sm font-medium text-gray-900">wp-config.php</h4>
+                                        <p class="text-xs text-gray-500">Backup created: 14:32:30</p>
+                                        <p class="text-xs text-gray-500">Checksum: sha256:a1b2c3d4e5f6...</p>
+                                        <p class="text-xs text-gray-500">Size: 2.1 KB</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="verification-content" class="mt-6 hidden">
+                            <div class="bg-white shadow rounded-lg p-6">
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Verification Results</h3>
+                                <p class="text-gray-500">Verification will run after fix completion.</p>
+                            </div>
+                        </div>
+
+                        <div id="ticket-content" class="mt-6 hidden">
+                            <div class="bg-white shadow rounded-lg p-6">
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Ticket/Handoff</h3>
+                                <p class="text-gray-500">No escalation ticket created yet.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tab contents
+            const contents = ['timeline', 'commands', 'evidence', 'changes', 'backups', 'verification', 'ticket'];
+            contents.forEach(content => {
+                document.getElementById(content + '-content').classList.add('hidden');
+                document.getElementById(content + '-tab').classList.remove('tab-active');
+                document.getElementById(content + '-tab').classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName + '-content').classList.remove('hidden');
+            document.getElementById(tabName + '-tab').classList.add('tab-active');
+            document.getElementById(tabName + '-tab').classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+        }
+    </script>
+</body>
+</html>

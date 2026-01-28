@@ -1,0 +1,24 @@
+{
+  "enabled": true,
+  "name": "Dependency Validation Guard",
+  "description": "Monitors package.json and requirements.txt changes to detect new library installations. Uses LLM analysis to compare proposed dependencies against .kiro/specs to determine if the addition is justified or if simpler solutions exist. Flags unnecessary dependencies for manual approval.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "package.json",
+      "frontend/package.json",
+      "requirements.txt",
+      "pyproject.toml",
+      "Pipfile",
+      "yarn.lock",
+      "package-lock.json"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A dependency file has been modified. Please analyze the changes to detect any new library installations. Compare the new dependencies against the project specifications in .kiro/specs to determine if:\n\n1. The new library is necessary for the stated requirements\n2. The problem could be solved with existing dependencies or simple code\n3. The library aligns with the project's technology stack and architecture\n\nIf you detect unnecessary library additions, flag them for approval and suggest simpler alternatives. Focus on preventing dependency bloat while maintaining code quality and project consistency.\n\nCheck the git diff to see exactly what dependencies were added or changed."
+  },
+  "workspaceFolderName": "Prompt Testing",
+  "shortName": "dependency-validation-hook"
+}

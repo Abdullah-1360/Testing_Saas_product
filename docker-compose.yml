@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: wp-autohealer-postgres
+    environment:
+      POSTGRES_DB: wp_autohealer
+      POSTGRES_USER: wp_autohealer
+      POSTGRES_PASSWORD: wp_autohealer_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - wp-autohealer-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wp_autohealer -d wp_autohealer"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for BullMQ
+  redis:
+    image: redis:7-alpine
+    container_name: wp-autohealer-redis
+    command: redis-server --appendonly yes --requirepass wp_autohealer_redis_password
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - wp-autohealer-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # WP-AutoHealer Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: wp-autohealer-app
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://wp_autohealer:wp_autohealer_password@postgres:5432/wp_autohealer
+      REDIS_URL: redis://:wp_autohealer_redis_password@redis:6379/0
+      JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
+      SESSION_SECRET: your-super-secret-session-key-change-this-in-production
+      ENCRYPTION_KEY: your-32-byte-encryption-key-here
+      PORT: 3000
+      LOG_LEVEL: debug
+      ENABLE_SWAGGER: true
+      ENABLE_BULL_BOARD: true
+      ALLOWED_ORIGINS: http://localhost:3001,http://localhost:3000,http://127.0.0.1:3001,http://127.0.0.1:3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - wp-autohealer-network
+    volumes:
+      - app_logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/v1/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Bull Board for queue monitoring (development only)
+  bull-board:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: wp-autohealer-bull-board
+    environment:
+      NODE_ENV: development
+      REDIS_URL: redis://:wp_autohealer_redis_password@redis:6379/0
+      ENABLE_BULL_BOARD: true
+    ports:
+      - "3001:3001"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - wp-autohealer-network
+    profiles:
+      - development
+    command: ["node", "-e", "require('./dist/bull-board.js')"]
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  app_logs:
+    driver: local
+
+networks:
+  wp-autohealer-network:
+    driver: bridge

@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "name": "Dead Code Scanner",
+  "description": "Performs static analysis after file edits to detect if new code has made existing functions unreachable or unused",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "*.ts",
+      "*.js",
+      "*.tsx",
+      "*.jsx"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Analyze the edited file and related files to check if the changes have made any existing functions unreachable or unused. Look for functions that are no longer called, imports that are no longer needed, or code paths that have become unreachable due to the new changes. Report any dead code found and suggest cleanup actions."
+  }
+}

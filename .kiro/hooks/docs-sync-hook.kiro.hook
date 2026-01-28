@@ -1,0 +1,25 @@
+{
+  "enabled": true,
+  "name": "Documentation Sync",
+  "description": "Automatically updates project documentation in README.md and docs/ folder when TypeScript source files, configuration files, or database schema changes are detected",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "*.ts",
+      "*.tsx",
+      "*.js",
+      "*.jsx",
+      "package.json",
+      "prisma/schema.prisma",
+      "docker-compose*.yml",
+      "*.config.ts",
+      "*.config.js",
+      ".env.example"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A source file has been modified. Please review the changes and update the relevant documentation in README.md or the docs/ folder to reflect any new features, API changes, configuration updates, or architectural modifications. Focus on keeping the documentation accurate and up-to-date with the current implementation."
+  }
+}

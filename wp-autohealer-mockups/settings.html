@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - WP-AutoHealer</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar-active { background-color: #3B82F6; color: white; }
+        .status-badge { @apply px-2 py-1 rounded-full text-xs font-medium; }
+        .status-active { @apply bg-green-100 text-green-800; }
+        .status-error { @apply bg-red-100 text-red-800; }
+        .status-warning { @apply bg-yellow-100 text-yellow-800; }
+        .tab-active { @apply border-blue-500 text-blue-600 bg-blue-50; }
+        .tab-inactive { @apply border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation Header -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-gray-900">
+                            <i class="fas fa-shield-alt text-blue-600 mr-2"></i>
+                            WP-AutoHealer
+                        </h1>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button class="bg-white p-1 rounded-full text-gray-400 hover:text-gray-500">
+                            <i class="fas fa-bell h-6 w-6"></i>
+                        </button>
+                        <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400"></span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <img class="h-8 w-8 rounded-full" src="https://via.placeholder.com/32" alt="User">
+                        <span class="text-sm font-medium text-gray-700">Admin User</span>
+                        <i class="fas fa-chevron-down text-gray-400"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex h-screen bg-gray-50">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white shadow-sm">
+            <nav class="mt-5 px-2">
+                <a href="index.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-tachometer-alt mr-4 h-6 w-6"></i>
+                    Dashboard
+                </a>
+                <a href="incidents.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-exclamation-triangle mr-4 h-6 w-6"></i>
+                    Incidents
+                    <span class="ml-auto bg-red-100 text-red-600 py-0.5 px-2 rounded-full text-xs">3</span>
+                </a>
+                <a href="sites.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-globe mr-4 h-6 w-6"></i>
+                    Sites
+                </a>
+                <a href="servers.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-server mr-4 h-6 w-6"></i>
+                    Servers
+                </a>
+                <a href="#" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-cog mr-4 h-6 w-6"></i>
+                    Policies
+                </a>
+                <a href="#" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-plug mr-4 h-6 w-6"></i>
+                    Integrations
+                </a>
+                <a href="#" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-users mr-4 h-6 w-6"></i>
+                    Users & Roles
+                </a>
+                <a href="#" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-clipboard-list mr-4 h-6 w-6"></i>
+                    Audit Log
+                </a>
+                <a href="#" class="sidebar-active group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-sliders-h mr-4 h-6 w-6"></i>
+                    Settings
+                </a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <div class="py-6">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                    <h1 class="text-2xl font-semibold text-gray-900">Settings</h1>
+                    <p class="mt-1 text-sm text-gray-500">Manage system configuration and policies</p>
+                </div>
+                
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                    <!-- Settings Tabs -->
+                    <div class="mt-6">
+                        <div class="border-b border-gray-200">
+                            <nav class="-mb-px flex space-x-8">
+                                <button class="tab-active whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm" onclick="showTab('retention')">
+                                    <i class="fas fa-clock mr-2"></i>
+                                    Data Retention
+                                </button>
+                                <button class="tab-inactive whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm" onclick="showTab('security')">
+                                    <i class="fas fa-shield-alt mr-2"></i>
+                                    Security
+                                </button>
+                                <button class="tab-inactive whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm" onclick="showTab('notifications')">
+                                    <i class="fas fa-bell mr-2"></i>
+                                    Notifications
+                                </button>
+                                <button class="tab-inactive whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm" onclick="showTab('system')">
+                                    <i class="fas fa-cogs mr-2"></i>
+                                    System
+                                </button>
+                            </nav>
+                        </div>
+
+                        <!-- Data Retention Tab -->
+                        <div id="retention-tab" class="mt-6">
+                            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                                <!-- Retention Policy -->
+                                <div class="bg-white shadow rounded-lg p-6">
+                                    <h3 class="text-lg font-medium text-gray-900 mb-4">Data Retention Policy</h3>
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                                Retention Period
+                                                <span class="text-red-500">*</span>
+                                            </label>
+                                            <div class="flex items-center space-x-4">
+                                                <input type="range" min="1" max="7" value="3" class="flex-1" id="retention-slider">
+                                                <div class="flex items-center space-x-2">
+                                                    <input type="number" min="1" max="7" value="3" class="w-16 rounded-md border-gray-300 text-center" id="retention-input">
+                                                    <span class="text-sm text-gray-500">days</span>
+                                                </div>
+                                            </div>
+                                            <p class="mt-2 text-sm text-gray-500">
+                                                <i class="fas fa-info-circle mr-1"></i>
+                                                Maximum retention period is 7 days (hard cap enforced)
+                                            </p>
+                                        </div>
+                                        
+                                        <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                                            <div class="flex">
+                                                <i class="fas fa-exclamation-triangle text-yellow-400 mr-2 mt-0.5"></i>
+                                                <div class="text-sm">
+                                                    <p class="text-yellow-800 font-medium">Current Setting: 3 days</p>
+                                                    <p class="text-yellow-700 mt-1">All incident data older than 3 days will be automatically purged</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <button class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                                            Update Retention Policy
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Purge Status -->
+                                <div class="bg-white shadow rounded-lg p-6">
+                                    <h3 class="text-lg font-medium text-gray-900 mb-4">Purge Status</h3>
+                                    <div class="space-y-4">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">Next Scheduled Purge</span>
+                                            <span class="text-sm font-medium text-gray-900">In 2 hours</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">Last Purge Run</span>
+                                            <span class="text-sm font-medium text-gray-900">22 hours ago</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">Records Purged</span>
+                                            <span class="text-sm font-medium text-gray-900">1,247 records</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">Storage Freed</span>
+                                            <span class="text-sm font-medium text-gray-900">156 MB</span>
+                                        </div>
+                                        
+                                        <button class="w-full bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700">
+                                            <i class="fas fa-play mr-2"></i>
+                                            Run Manual Purge
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Purge Audit Log -->
+                            <div class="mt-6 bg-white shadow rounded-lg">
+                                <div class="px-6 py-4 border-b border-gray-200">
+                                    <h3 class="text-lg font-medium text-gray-900">Purge Audit Log</h3>
+                                    <p class="text-sm text-gray-500">History of data purge operations</p>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Executed At</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Policy</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Records Purged</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cutoff Date</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Initiator</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Jan 25, 2024 02:00</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">3 days retention</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1,247</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Jan 22, 2024</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">System (Scheduled)</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Jan 24, 2024 02:00</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">3 days retention</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">892</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Jan 21, 2024</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">System (Scheduled)</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Jan 23, 2024 14:30</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">3 days retention</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">156</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Jan 20, 2024</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">admin@example.com (Manual)</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Security Tab (Hidden by default) -->
+                        <div id="security-tab" class="mt-6 hidden">
+                            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                                <!-- SSH Security -->
+                                <div class="bg-white shadow rounded-lg p-6">
+                                    <h3 class="text-lg font-medium text-gray-900 mb-4">SSH Security</h3>
+                                    <div class="space-y-4">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label class="text-sm font-medium text-gray-700">Strict Host Key Checking</label>
+                                                <p class="text-xs text-gray-500">Prevent man-in-the-middle attacks</p>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <input type="checkbox" checked class="rounded border-gray-300 text-blue-600">
+                                                <span class="ml-2 text-sm text-green-600">Enabled</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label class="text-sm font-medium text-gray-700">Prefer SSH Keys</label>
+                                                <p class="text-xs text-gray-500">Use SSH keys over passwords when available</p>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <input type="checkbox" checked class="rounded border-gray-300 text-blue-600">
+                                                <span class="ml-2 text-sm text-green-600">Enabled</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label class="text-sm font-medium text-gray-700">Connection Timeout</label>
+                                                <p class="text-xs text-gray-500">SSH connection timeout in seconds</p>
+                                            </div>
+                                            <input type="number" value="30" class="w-20 rounded-md border-gray-300 text-center">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- API Security -->
+                                <div class="bg-white shadow rounded-lg p-6">
+                                    <h3 class="text-lg font-medium text-gray-900 mb-4">API Security</h3>
+                                    <div class="space-y-4">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label class="text-sm font-medium text-gray-700">Rate Limiting</label>
+                                                <p class="text-xs text-gray-500">Requests per minute per user</p>
+                                            </div>
+                                            <input type="number" value="100" class="w-20 rounded-md border-gray-300 text-center">
+                                        </div>
+                                        
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label class="text-sm font-medium text-gray-700">Secret Redaction</label>
+                                                <p class="text-xs text-gray-500">Hide secrets in logs and API responses</p>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <input type="checkbox" checked disabled class="rounded border-gray-300 text-blue-600">
+                                                <span class="ml-2 text-sm text-gray-600">Always Enabled</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label class="text-sm font-medium text-gray-700">CORS Origins</label>
+                                                <p class="text-xs text-gray-500">Allowed origins for API access</p>
+                                            </div>
+                                            <button class="text-blue-600 hover:text-blue-900 text-sm">Configure</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- System Tab (Hidden by default) -->
+                        <div id="system-tab" class="mt-6 hidden">
+                            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                                <!-- Job Engine -->
+                                <div class="bg-white shadow rounded-lg p-6">
+                                    <h3 class="text-lg font-medium text-gray-900 mb-4">Job Engine</h3>
+                                    <div class="space-y-4">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label class="text-sm font-medium text-gray-700">Max Fix Attempts</label>
+                                                <p class="text-xs text-gray-500">Maximum attempts per incident</p>
+                                            </div>
+                                            <input type="number" value="15" min="1" max="15" class="w-20 rounded-md border-gray-300 text-center">
+                                        </div>
+                                        
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label class="text-sm font-medium text-gray-700">Cooldown Window</label>
+                                                <p class="text-xs text-gray-500">Minutes between incidents for same site</p>
+                                            </div>
+                                            <input type="number" value="5" class="w-20 rounded-md border-gray-300 text-center">
+                                        </div>
+                                        
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label class="text-sm font-medium text-gray-700">Max Concurrent Jobs</label>
+                                                <p class="text-xs text-gray-500">Maximum parallel incident processing</p>
+                                            </div>
+                                            <input type="number" value="5" class="w-20 rounded-md border-gray-300 text-center">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- System Health -->
+                                <div class="bg-white shadow rounded-lg p-6">
+                                    <h3 class="text-lg font-medium text-gray-900 mb-4">System Health</h3>
+                                    <div class="space-y-4">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">Database Connection</span>
+                                            <span class="status-badge status-active">Connected</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">Redis Queue</span>
+                                            <span class="status-badge status-active">Healthy</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">SSH Pool</span>
+                                            <span class="status-badge status-active">5/10 Active</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">Disk Usage</span>
+                                            <span class="status-badge status-warning">78% Used</span>
+                                        </div>
+                                        
+                                        <button class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                                            <i class="fas fa-sync mr-2"></i>
+                                            Refresh Status
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tabs
+            const tabs = ['retention', 'security', 'notifications', 'system'];
+            tabs.forEach(tab => {
+                const element = document.getElementById(tab + '-tab');
+                if (element) element.classList.add('hidden');
+            });
+            
+            // Show selected tab
+            const selectedTab = document.getElementById(tabName + '-tab');
+            if (selectedTab) selectedTab.classList.remove('hidden');
+            
+            // Update tab styles
+            const tabButtons = document.querySelectorAll('nav button');
+            tabButtons.forEach(button => {
+                button.className = 'tab-inactive whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm';
+            });
+            
+            // Set active tab
+            event.target.className = 'tab-active whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm';
+        }
+
+        // Sync slider and input
+        document.getElementById('retention-slider').addEventListener('input', function() {
+            document.getElementById('retention-input').value = this.value;
+        });
+        
+        document.getElementById('retention-input').addEventListener('input', function() {
+            document.getElementById('retention-slider').value = this.value;
+        });
+    </script>
+</body>
+</html>

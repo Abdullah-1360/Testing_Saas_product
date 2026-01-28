@@ -1,0 +1,257 @@
+# Additional monitoring services for WP-AutoHealer
+# Use with: docker-compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml up
+
+version: '3.8'
+
+services:
+  # PostgreSQL Exporter for database metrics
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: wp-autohealer-postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-wp_autohealer}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-wp_autohealer}?sslmode=disable"
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres_exporter/queries.yaml"
+    volumes:
+      - ./docker/postgres/exporter-queries.yaml:/etc/postgres_exporter/queries.yaml:ro
+    ports:
+      - "${POSTGRES_EXPORTER_PORT:-9187}:9187"
+    networks:
+      - wp-autohealer-network-prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9187/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.1'
+        reservations:
+          memory: 64M
+          cpus: '0.05'
+
+  # Redis Exporter for Redis metrics
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: wp-autohealer-redis-exporter
+    environment:
+      REDIS_ADDR: "redis://redis-master:6379"
+      REDIS_PASSWORD: "${REDIS_PASSWORD}"
+      REDIS_EXPORTER_LOG_FORMAT: "json"
+    ports:
+      - "${REDIS_EXPORTER_PORT:-9121}:9121"
+    networks:
+      - wp-autohealer-network-prod
+    depends_on:
+      redis-master:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9121/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.1'
+        reservations:
+          memory: 64M
+          cpus: '0.05'
+
+  # Nginx Prometheus Exporter
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:latest
+    container_name: wp-autohealer-nginx-exporter
+    command:
+      - '-nginx.scrape-uri=http://nginx:8080/nginx_status'
+    ports:
+      - "${NGINX_EXPORTER_PORT:-9113}:9113"
+    networks:
+      - wp-autohealer-network-prod
+    depends_on:
+      - nginx
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9113/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.05'
+        reservations:
+          memory: 32M
+          cpus: '0.025'
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: wp-autohealer-grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_SECURITY_DISABLE_GRAVATAR: true
+      GF_SECURITY_COOKIE_SECURE: true
+      GF_SECURITY_COOKIE_SAMESITE: strict
+      GF_ANALYTICS_REPORTING_ENABLED: false
+      GF_ANALYTICS_CHECK_FOR_UPDATES: false
+      GF_LOG_LEVEL: warn
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "${GRAFANA_PORT:-3002}:3000"
+    networks:
+      - wp-autohealer-network-prod
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # Loki for log aggregation (alternative to Fluentd)
+  loki:
+    image: grafana/loki:latest
+    container_name: wp-autohealer-loki
+    volumes:
+      - ./docker/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    networks:
+      - wp-autohealer-network-prod
+    restart: unless-stopped
+    command: -config.file=/etc/loki/local-config.yaml
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # Promtail for log shipping to Loki
+  promtail:
+    image: grafana/promtail:latest
+    container_name: wp-autohealer-promtail
+    volumes:
+      - ./docker/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - app_logs_prod:/var/log/app:ro
+      - nginx_logs_prod:/var/log/nginx:ro
+      - /var/log:/var/log/host:ro
+    networks:
+      - wp-autohealer-network-prod
+    depends_on:
+      - loki
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/config.yml
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.1'
+        reservations:
+          memory: 64M
+          cpus: '0.05'
+
+  # Jaeger for distributed tracing (optional)
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: wp-autohealer-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: true
+      COLLECTOR_ZIPKIN_HOST_PORT: ":9411"
+    ports:
+      - "${JAEGER_UI_PORT:-16686}:16686"
+      - "${JAEGER_COLLECTOR_PORT:-14268}:14268"
+      - "${JAEGER_COLLECTOR_OTLP_PORT:-4317}:4317"
+      - "${JAEGER_COLLECTOR_OTLP_HTTP_PORT:-4318}:4318"
+    networks:
+      - wp-autohealer-network-prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:16686/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+volumes:
+  grafana_data:
+    driver: local
+  loki_data:
+    driver: local
+
+networks:
+  wp-autohealer-network-prod:
+    external: true

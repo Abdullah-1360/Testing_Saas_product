@@ -1,0 +1,197 @@
+# Security-focused Alert Rules for WP-AutoHealer
+# Defines alerting conditions for security events and threats
+
+groups:
+  - name: wp-autohealer-security
+    rules:
+      # Brute Force Attack Detection
+      - alert: BruteForceAttack
+        expr: increase(wp_autohealer_auth_failures_total[5m]) > 20
+        for: 1m
+        labels:
+          severity: critical
+          security_event: brute_force
+          service: authentication
+        annotations:
+          summary: "Brute force attack detected"
+          description: "More than 20 authentication failures in 5 minutes from {{ $labels.source_ip }}"
+
+      # Suspicious Request Patterns
+      - alert: SuspiciousRequestPattern
+        expr: increase(nginx_http_requests_total{status="444"}[5m]) > 50
+        for: 2m
+        labels:
+          severity: high
+          security_event: suspicious_requests
+          service: nginx
+        annotations:
+          summary: "High number of blocked suspicious requests"
+          description: "More than 50 suspicious requests blocked in 5 minutes"
+
+      # Rate Limiting Triggered Frequently
+      - alert: FrequentRateLimiting
+        expr: increase(nginx_http_requests_total{status="429"}[10m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          security_event: rate_limiting
+          service: nginx
+        annotations:
+          summary: "Frequent rate limiting triggered"
+          description: "Rate limiting has been triggered more than 100 times in 10 minutes"
+
+      # DDoS Attack Indicators
+      - alert: PotentialDDoSAttack
+        expr: rate(nginx_http_requests_total[1m]) > 5000
+        for: 2m
+        labels:
+          severity: critical
+          security_event: ddos
+          service: nginx
+        annotations:
+          summary: "Potential DDoS attack detected"
+          description: "Request rate exceeds 5000 requests per second for 2 minutes"
+
+      # Unauthorized Access Attempts
+      - alert: UnauthorizedAccessAttempts
+        expr: increase(wp_autohealer_unauthorized_access_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: high
+          security_event: unauthorized_access
+          service: backend
+        annotations:
+          summary: "Multiple unauthorized access attempts"
+          description: "More than 10 unauthorized access attempts in 5 minutes"
+
+      # SQL Injection Attempts
+      - alert: SQLInjectionAttempts
+        expr: increase(wp_autohealer_security_violations_total{type="sql_injection"}[5m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+          security_event: sql_injection
+          service: backend
+        annotations:
+          summary: "SQL injection attempts detected"
+          description: "More than 5 SQL injection attempts detected in 5 minutes"
+
+      # XSS Attack Attempts
+      - alert: XSSAttackAttempts
+        expr: increase(wp_autohealer_security_violations_total{type="xss"}[5m]) > 5
+        for: 1m
+        labels:
+          severity: high
+          security_event: xss
+          service: backend
+        annotations:
+          summary: "XSS attack attempts detected"
+          description: "More than 5 XSS attack attempts detected in 5 minutes"
+
+      # Privilege Escalation Attempts
+      - alert: PrivilegeEscalationAttempts
+        expr: increase(wp_autohealer_privilege_escalation_attempts_total[10m]) > 3
+        for: 1m
+        labels:
+          severity: critical
+          security_event: privilege_escalation
+          service: backend
+        annotations:
+          summary: "Privilege escalation attempts detected"
+          description: "More than 3 privilege escalation attempts in 10 minutes"
+
+      # Suspicious File Access
+      - alert: SuspiciousFileAccess
+        expr: increase(wp_autohealer_suspicious_file_access_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: high
+          security_event: file_access
+          service: backend
+        annotations:
+          summary: "Suspicious file access patterns"
+          description: "More than 10 suspicious file access attempts in 5 minutes"
+
+      # Failed SSH Connections (if monitoring SSH)
+      - alert: FailedSSHConnections
+        expr: increase(wp_autohealer_ssh_connection_failures_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: high
+          security_event: ssh_failure
+          service: ssh
+        annotations:
+          summary: "Multiple SSH connection failures"
+          description: "More than 10 SSH connection failures in 5 minutes"
+
+      # Anomalous User Behavior
+      - alert: AnomalousUserBehavior
+        expr: wp_autohealer_user_session_anomaly_score > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          security_event: anomalous_behavior
+          service: backend
+        annotations:
+          summary: "Anomalous user behavior detected"
+          description: "User {{ $labels.user_id }} showing anomalous behavior (score: {{ $value }})"
+
+      # Certificate Expiration Warning
+      - alert: SSLCertificateExpiring
+        expr: (ssl_certificate_expiry_seconds - time()) / 86400 < 30
+        for: 1h
+        labels:
+          severity: warning
+          security_event: certificate_expiry
+          service: nginx
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate for {{ $labels.domain }} expires in {{ $value }} days"
+
+      # Security Configuration Changes
+      - alert: SecurityConfigurationChange
+        expr: increase(wp_autohealer_security_config_changes_total[1h]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          security_event: config_change
+          service: backend
+        annotations:
+          summary: "Security configuration changed"
+          description: "Security configuration has been modified by {{ $labels.user }}"
+
+      # Malware Detection (if implemented)
+      - alert: MalwareDetected
+        expr: increase(wp_autohealer_malware_detected_total[1m]) > 0
+        for: 0s
+        labels:
+          severity: critical
+          security_event: malware
+          service: backend
+        annotations:
+          summary: "Malware detected"
+          description: "Malware detected in {{ $labels.file_path }} on server {{ $labels.server }}"
+
+      # Data Exfiltration Indicators
+      - alert: DataExfiltrationIndicators
+        expr: rate(wp_autohealer_data_transfer_bytes[5m]) > 100000000  # 100MB/s
+        for: 10m
+        labels:
+          severity: high
+          security_event: data_exfiltration
+          service: backend
+        annotations:
+          summary: "Potential data exfiltration detected"
+          description: "Unusually high data transfer rate: {{ $value }} bytes/second for 10 minutes"
+
+      # Backup Integrity Issues
+      - alert: BackupIntegrityIssue
+        expr: wp_autohealer_backup_integrity_failures_total > 0
+        for: 1m
+        labels:
+          severity: high
+          security_event: backup_integrity
+          service: backup
+        annotations:
+          summary: "Backup integrity check failed"
+          description: "Backup integrity verification failed for {{ $labels.backup_id }}"

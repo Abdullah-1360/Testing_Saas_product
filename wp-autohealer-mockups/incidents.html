@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incidents - WP-AutoHealer</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar-active { background-color: #3B82F6; color: white; }
+        .status-badge { padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
+        .status-new { background-color: #FEF3C7; color: #92400E; }
+        .status-processing { background-color: #DBEAFE; color: #1E40AF; }
+        .status-fixed { background-color: #D1FAE5; color: #065F46; }
+        .status-escalated { background-color: #FEE2E2; color: #991B1B; }
+        .priority-high { background-color: #FEE2E2; color: #991B1B; }
+        .priority-medium { background-color: #FEF3C7; color: #92400E; }
+        .priority-low { background-color: #E0E7FF; color: #3730A3; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation Header -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-gray-900">
+                            <i class="fas fa-shield-alt text-blue-600 mr-2"></i>
+                            WP-AutoHealer
+                        </h1>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button class="bg-white p-1 rounded-full text-gray-400 hover:text-gray-500">
+                            <i class="fas fa-bell h-6 w-6"></i>
+                        </button>
+                        <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400"></span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <img class="h-8 w-8 rounded-full" src="https://via.placeholder.com/32" alt="User">
+                        <span class="text-sm font-medium text-gray-700">Admin User</span>
+                        <i class="fas fa-chevron-down text-gray-400"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex h-screen bg-gray-50">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white shadow-sm">
+            <nav class="mt-5 px-2">
+                <a href="index.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-tachometer-alt mr-4 h-6 w-6"></i>
+                    Dashboard
+                </a>
+                <a href="#" class="sidebar-active group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-exclamation-triangle mr-4 h-6 w-6"></i>
+                    Incidents
+                    <span class="ml-auto bg-red-100 text-red-600 py-0.5 px-2 rounded-full text-xs">3</span>
+                </a>
+                <a href="sites.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-globe mr-4 h-6 w-6"></i>
+                    Sites
+                </a>
+                <a href="servers.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-server mr-4 h-6 w-6"></i>
+                    Servers
+                </a>
+                <a href="policies.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-cog mr-4 h-6 w-6"></i>
+                    Policies
+                </a>
+                <a href="integrations.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-plug mr-4 h-6 w-6"></i>
+                    Integrations
+                </a>
+                <a href="users.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-users mr-4 h-6 w-6"></i>
+                    Users & Roles
+                </a>
+                <a href="audit.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-clipboard-list mr-4 h-6 w-6"></i>
+                    Audit Log
+                </a>
+                <a href="settings.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                    <i class="fas fa-sliders-h mr-4 h-6 w-6"></i>
+                    Settings
+                </a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <div class="py-6">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                    <div class="flex justify-between items-center">
+                        <h1 class="text-2xl font-semibold text-gray-900">Incidents</h1>
+                        <button class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center">
+                            <i class="fas fa-plus mr-2"></i>
+                            Trigger Manual Check
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                    <!-- Filters -->
+                    <div class="mt-6 bg-white shadow rounded-lg p-4">
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Status</label>
+                                <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <option>All Statuses</option>
+                                    <option>New</option>
+                                    <option>Processing</option>
+                                    <option>Fixed</option>
+                                    <option>Escalated</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Priority</label>
+                                <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <option>All Priorities</option>
+                                    <option>High</option>
+                                    <option>Medium</option>
+                                    <option>Low</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Site</label>
+                                <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <option>All Sites</option>
+                                    <option>example.com</option>
+                                    <option>shop.example.com</option>
+                                    <option>blog.example.com</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Time Range</label>
+                                <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <option>Last 24 hours</option>
+                                    <option>Last 7 days</option>
+                                    <option>Last 30 days</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Incidents Table -->
+                    <div class="mt-6 bg-white shadow overflow-hidden sm:rounded-md">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Incident</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Site</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fix Attempts</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='incident-detail.html'">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0 h-8 w-8">
+                                                    <div class="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
+                                                        <i class="fas fa-exclamation-triangle text-red-600 text-sm"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-gray-900">#INC-2024-001</div>
+                                                    <div class="text-sm text-gray-500">Fatal error in wp-config.php</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm text-gray-900">example.com</div>
+                                            <div class="text-sm text-gray-500">WordPress 6.4.2</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="status-badge status-processing">Processing</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="status-badge priority-high">High</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            3/15
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            2 min ago
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button class="text-blue-600 hover:text-blue-900 mr-3">View</button>
+                                            <button class="text-gray-600 hover:text-gray-900">Pause</button>
+                                        </td>
+                                    </tr>
+                                    
+                                    <tr class="hover:bg-gray-50 cursor-pointer">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0 h-8 w-8">
+                                                    <div class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                                                        <i class="fas fa-check text-green-600 text-sm"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-gray-900">#INC-2024-002</div>
+                                                    <div class="text-sm text-gray-500">Plugin conflict resolved</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm text-gray-900">shop.example.com</div>
+                                            <div class="text-sm text-gray-500">WordPress 6.4.1</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="status-badge status-fixed">Fixed</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="status-badge priority-medium">Medium</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            2/15
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            15 min ago
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button class="text-blue-600 hover:text-blue-900 mr-3">View</button>
+                                            <button class="text-gray-600 hover:text-gray-900">Archive</button>
+                                        </td>
+                                    </tr>
+                                    
+                                    <tr class="hover:bg-gray-50 cursor-pointer">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0 h-8 w-8">
+                                                    <div class="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
+                                                        <i class="fas fa-arrow-up text-red-600 text-sm"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-gray-900">#INC-2024-003</div>
+                                                    <div class="text-sm text-gray-500">Database connection timeout</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm text-gray-900">blog.example.com</div>
+                                            <div class="text-sm text-gray-500">WordPress 6.3.2</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="status-badge status-escalated">Escalated</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="status-badge priority-high">High</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            15/15
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            1 hour ago
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button class="text-blue-600 hover:text-blue-900 mr-3">View</button>
+                                            <button class="text-red-600 hover:text-red-900">Ticket</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="mt-6 flex items-center justify-between">
+                        <div class="flex-1 flex justify-between sm:hidden">
+                            <button class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Previous
+                            </button>
+                            <button class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Next
+                            </button>
+                        </div>
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-gray-700">
+                                    Showing <span class="font-medium">1</span> to <span class="font-medium">10</span> of <span class="font-medium">97</span> results
+                                </p>
+                            </div>
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                                    <button class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <button class="bg-blue-50 border-blue-500 text-blue-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium">1</button>
+                                    <button class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">2</button>
+                                    <button class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">3</button>
+                                    <button class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

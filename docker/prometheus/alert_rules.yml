@@ -1,0 +1,176 @@
+# Prometheus Alert Rules for WP-AutoHealer
+# Defines alerting conditions for system health and performance
+
+groups:
+  - name: wp-autohealer-system
+    rules:
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is above 80% for more than 5 minutes on {{ $labels.instance }}"
+
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is above 85% for more than 5 minutes on {{ $labels.instance }}"
+
+      # Disk Space Low
+      - alert: DiskSpaceLow
+        expr: (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"})) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Disk space is running low"
+          description: "Disk usage is above 85% on {{ $labels.instance }} filesystem {{ $labels.mountpoint }}"
+
+      # Service Down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.job }}"
+        annotations:
+          summary: "Service is down"
+          description: "{{ $labels.job }} service is down on {{ $labels.instance }}"
+
+  - name: wp-autohealer-application
+    rules:
+      # High Error Rate
+      - alert: HighErrorRate
+        expr: rate(wp_autohealer_http_requests_total{status=~"5.."}[5m]) / rate(wp_autohealer_http_requests_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          service: backend
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is above 10% for the last 5 minutes"
+
+      # High Response Time
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(wp_autohealer_http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is above 2 seconds"
+
+      # Database Connection Issues
+      - alert: DatabaseConnectionIssues
+        expr: wp_autohealer_database_connections_failed_total > 10
+        for: 1m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "Database connection failures"
+          description: "More than 10 database connection failures detected"
+
+      # Queue Processing Delays
+      - alert: QueueProcessingDelays
+        expr: wp_autohealer_queue_job_duration_seconds > 300
+        for: 5m
+        labels:
+          severity: warning
+          service: queue
+        annotations:
+          summary: "Queue processing delays"
+          description: "Jobs are taking more than 5 minutes to process"
+
+      # Failed Incident Processing
+      - alert: FailedIncidentProcessing
+        expr: increase(wp_autohealer_incidents_failed_total[10m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+          service: incidents
+        annotations:
+          summary: "Multiple incident processing failures"
+          description: "More than 5 incidents have failed processing in the last 10 minutes"
+
+  - name: wp-autohealer-infrastructure
+    rules:
+      # PostgreSQL Down
+      - alert: PostgreSQLDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database is not responding"
+
+      # Redis Down
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis server is not responding"
+
+      # High Database Connections
+      - alert: HighDatabaseConnections
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "High number of database connections"
+          description: "More than 80 active database connections"
+
+      # Redis Memory Usage High
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Redis memory usage is above 90%"
+
+  - name: wp-autohealer-nginx
+    rules:
+      # High Request Rate
+      - alert: HighRequestRate
+        expr: rate(nginx_http_requests_total[5m]) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: nginx
+        annotations:
+          summary: "High request rate detected"
+          description: "Request rate is above 1000 requests per second"
+
+      # Nginx Error Rate
+      - alert: NginxHighErrorRate
+        expr: rate(nginx_http_requests_total{status=~"4..|5.."}[5m]) / rate(nginx_http_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: nginx
+        annotations:
+          summary: "High nginx error rate"
+          description: "Nginx error rate is above 5%"

@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "name": "Auto-Docstring Checker",
+  "description": "Triggers when files are edited to ensure every new method has properly formatted JSDoc or docstring documentation",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "*.ts",
+      "*.js",
+      "*.tsx",
+      "*.jsx",
+      "*.py"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Check the edited file for any new functions or methods that are missing JSDoc documentation. For TypeScript/JavaScript files, ensure all functions have proper JSDoc comments with @param and @returns tags. For Python files, ensure proper docstrings. Add missing documentation following the project's documentation standards."
+  }
+}

@@ -1,0 +1,457 @@
+services:
+  # PostgreSQL Database with production settings
+  postgres:
+    image: postgres:15-alpine
+    container_name: wp-autohealer-postgres-prod
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-wp_autohealer}
+      POSTGRES_USER: ${POSTGRES_USER:-wp_autohealer}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+      - ./docker/postgres/init-prod.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - wp-autohealer-network-prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wp_autohealer} -d ${POSTGRES_DB:-wp_autohealer}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+
+  # Redis Cluster for BullMQ (Master)
+  redis-master:
+    image: redis:7-alpine
+    container_name: wp-autohealer-redis-master-prod
+    command: >
+      redis-server 
+      --appendonly yes 
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    volumes:
+      - redis_master_data_prod:/data
+      - ./docker/redis/redis-master.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - "${REDIS_MASTER_PORT:-6379}:6379"
+    networks:
+      - wp-autohealer-network-prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+        reservations:
+          memory: 256M
+          cpus: '0.1'
+
+  # Redis Replica for read operations
+  redis-replica:
+    image: redis:7-alpine
+    container_name: wp-autohealer-redis-replica-prod
+    command: >
+      redis-server 
+      --replicaof redis-master 6379
+      --masterauth ${REDIS_PASSWORD}
+      --requirepass ${REDIS_PASSWORD}
+      --replica-read-only yes
+    volumes:
+      - redis_replica_data_prod:/data
+    ports:
+      - "${REDIS_REPLICA_PORT:-6380}:6379"
+    networks:
+      - wp-autohealer-network-prod
+    depends_on:
+      redis-master:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+        reservations:
+          memory: 256M
+          cpus: '0.1'
+
+  # WP-AutoHealer Backend Application
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: wp-autohealer-backend-prod
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-wp_autohealer}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-wp_autohealer}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis-master:6379/0
+      REDIS_REPLICA_URL: redis://:${REDIS_PASSWORD}@redis-replica:6379/0
+      JWT_SECRET: ${JWT_SECRET}
+      SESSION_SECRET: ${SESSION_SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET}
+      PORT: 3000
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FILE_ENABLED: true
+      LOG_FILE_PATH: /app/logs/wp-autohealer.log
+      LOG_MAX_FILES: 30
+      LOG_MAX_SIZE: 20m
+      ENABLE_SWAGGER: false
+      ENABLE_BULL_BOARD: false
+      RATE_LIMIT_TTL: 60
+      RATE_LIMIT_LIMIT: 100
+      DEFAULT_RETENTION_DAYS: 3
+      MAX_RETENTION_DAYS: 7
+      MAX_FIX_ATTEMPTS: 15
+      INCIDENT_COOLDOWN_WINDOW: 600
+      SSH_CONNECTION_TIMEOUT: 30000
+      SSH_COMMAND_TIMEOUT: 60000
+      SSH_MAX_CONNECTIONS: 10
+      VERIFICATION_TIMEOUT: 30000
+      VERIFICATION_RETRY_ATTEMPTS: 3
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis-master:
+        condition: service_healthy
+    networks:
+      - wp-autohealer-network-prod
+    volumes:
+      - app_logs_prod:/app/logs
+      - app_uploads_prod:/app/uploads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/v1/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+
+  # WP-AutoHealer Frontend Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: wp-autohealer-frontend-prod
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/v1}
+      NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-WP-AutoHealer}
+      NEXT_PUBLIC_APP_VERSION: ${NEXT_PUBLIC_APP_VERSION:-1.0.0}
+      PORT: 3000
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "${FRONTEND_PORT:-3001}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - wp-autohealer-network-prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # Nginx Reverse Proxy and Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: wp-autohealer-nginx-prod
+    volumes:
+      - ./docker/nginx/nginx-simple.conf:/etc/nginx/nginx.conf:ro
+      - nginx_logs_prod:/var/log/nginx
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - wp-autohealer-network-prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+
+  # Log aggregation and monitoring
+  fluentd:
+    image: fluent/fluentd:v1.16-debian-1
+    container_name: wp-autohealer-fluentd-prod
+    volumes:
+      - ./docker/fluentd/fluent.conf:/fluentd/etc/fluent.conf:ro
+      - app_logs_prod:/var/log/app:ro
+      - nginx_logs_prod:/var/log/nginx:ro
+      - fluentd_logs_prod:/var/log/fluentd
+    networks:
+      - wp-autohealer-network-prod
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: wp-autohealer-prometheus-prod
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./docker/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - ./docker/prometheus/security_rules.yml:/etc/prometheus/security_rules.yml:ro
+      - prometheus_data_prod:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    networks:
+      - wp-autohealer-network-prod
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # Alertmanager for alert routing and notification
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: wp-autohealer-alertmanager-prod
+    volumes:
+      - ./docker/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data_prod:/alertmanager
+    ports:
+      - "${ALERTMANAGER_PORT:-9093}:9093"
+    networks:
+      - wp-autohealer-network-prod
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+      - '--cluster.advertise-address=0.0.0.0:9093'
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+
+  # Node Exporter for system metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: wp-autohealer-node-exporter-prod
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    ports:
+      - "${NODE_EXPORTER_PORT:-9100}:9100"
+    networks:
+      - wp-autohealer-network-prod
+    restart: unless-stopped
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.1'
+        reservations:
+          memory: 64M
+          cpus: '0.05'
+
+  # cAdvisor for container metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: wp-autohealer-cadvisor-prod
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "${CADVISOR_PORT:-8080}:8080"
+    networks:
+      - wp-autohealer-network-prod
+    restart: unless-stopped
+    privileged: true
+    devices:
+      - /dev/kmsg
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+
+volumes:
+  postgres_data_prod:
+    driver: local
+  redis_master_data_prod:
+    driver: local
+  redis_replica_data_prod:
+    driver: local
+  app_logs_prod:
+    driver: local
+  app_uploads_prod:
+    driver: local
+  nginx_logs_prod:
+    driver: local
+  fluentd_logs_prod:
+    driver: local
+  prometheus_data_prod:
+    driver: local
+  alertmanager_data_prod:
+    driver: local
+
+networks:
+  wp-autohealer-network-prod:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

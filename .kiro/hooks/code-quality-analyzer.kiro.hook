@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "name": "Code Quality Analyzer",
+  "description": "Automatically analyzes modified TypeScript/JavaScript files for code smells, design patterns, and best practices. Provides suggestions for improving readability, maintainability, and performance while preserving functionality.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "*.ts",
+      "*.tsx",
+      "*.js",
+      "*.jsx"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Analyze the recently modified code file for potential improvements. Focus on:\n\n1. **Code Smells**: Identify long methods, complex conditionals, duplicate code, and unclear variable names\n2. **Design Patterns**: Suggest appropriate NestJS/React patterns, SOLID principles, and architectural improvements\n3. **Best Practices**: Check for proper error handling, type safety, security considerations, and performance optimizations\n4. **WP-AutoHealer Specific**: Ensure consistency with project patterns (DTOs, services, controllers, proper module organization)\n5. **Testing**: Suggest areas that might benefit from additional unit or property-based tests\n\nProvide specific, actionable suggestions while maintaining existing functionality. Consider the project's focus on security, audit trails, and conservative approaches."
+  }
+}

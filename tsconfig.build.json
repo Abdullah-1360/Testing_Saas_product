@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "node_modules",
+    "test",
+    "dist",
+    "**/*spec.ts",
+    "**/*test.ts",
+    "coverage",
+    "prisma/seed.ts",
+    "src/wordpress-fixes/**/*"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "enabled": true,
+  "name": "Lint Quality Gate",
+  "description": "Automatically runs eslint, black, or ruff linting tools when agent execution completes. If linting fails with a nonzero exit code, the hook rejects the task and provides specific line number feedback to help the agent fix the issues.",
+  "version": "1",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "#!/bin/bash\n\n# Function to run linter and capture output\nrun_linter() {\n    local cmd=\"$1\"\n    local files=\"$2\"\n    \n    echo \"Running $cmd on $files...\"\n    output=$($cmd $files 2>&1)\n    exit_code=$?\n    \n    if [ $exit_code -ne 0 ]; then\n        echo \"❌ Linting failed with exit code $exit_code\"\n        echo \"Linter output:\"\n        echo \"$output\"\n        echo \"\"\n        echo \"🔧 Please fix the following issues before proceeding:\"\n        echo \"$output\" | grep -E \":[0-9]+:[0-9]*\" || echo \"$output\"\n        return $exit_code\n    else\n        echo \"✅ Linting passed\"\n        return 0\n    fi\n}\n\n# Check for different file types and run appropriate linters\nhas_errors=0\n\n# Check for TypeScript/JavaScript files and run eslint\nif find . -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.jsx\" | grep -q .; then\n    if command -v eslint >/dev/null 2>&1; then\n        ts_js_files=$(find . -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.jsx\" | grep -v node_modules | head -20)\n        if [ -n \"$ts_js_files\" ]; then\n            run_linter \"eslint\" \"$ts_js_files\"\n            if [ $? -ne 0 ]; then\n                has_errors=1\n            fi\n        fi\n    fi\nfi\n\n# Check for Python files and run black or ruff\nif find . -name \"*.py\" | grep -q .; then\n    python_files=$(find . -name \"*.py\" | grep -v __pycache__ | head -20)\n    if [ -n \"$python_files\" ]; then\n        # Try ruff first (faster), then black\n        if command -v ruff >/dev/null 2>&1; then\n            run_linter \"ruff check\" \"$python_files\"\n            if [ $? -ne 0 ]; then\n                has_errors=1\n            fi\n        elif command -v black >/dev/null 2>&1; then\n            run_linter \"black --check --diff\" \"$python_files\"\n            if [ $? -ne 0 ]; then\n                has_errors=1\n            fi\n        fi\n    fi\nfi\n\n# Final result\nif [ $has_errors -eq 1 ]; then\n    echo \"\"\n    echo \"🚫 TASK REJECTED: Code quality issues detected\"\n    echo \"Please address the linting errors above and try again.\"\n    exit 1\nelse\n    echo \"\"\n    echo \"🎉 All linting checks passed! Task approved.\"\n    exit 0\nfi"
+  },
+  "workspaceFolderName": "Prompt Testing",
+  "shortName": "lint-quality-gate"
+}

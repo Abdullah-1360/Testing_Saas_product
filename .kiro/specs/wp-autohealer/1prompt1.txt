@@ -1,0 +1,1183 @@
+# Authentication & Authorization Module - Functional Requirements
+## WP-AutoHealer Foundation Layer
+
+**Version:** 1.0.0  
+**Module:** Foundation/Auth  
+**Status:** Ready for Implementation  
+**Date:** January 28, 2026
+
+---
+
+## 1. Module Overview
+
+### 1.1 Purpose
+Provide complete authentication, authorization, session management, and MFA capabilities for the WP-AutoHealer system.
+
+### 1.2 Scope
+This module is the foundation layer and will be used by ALL other modules in the system.
+
+### 1.3 Module Boundaries
+**In Scope:**
+- User authentication (login/logout)
+- Password management (hashing, reset)
+- JWT token management (access + refresh)
+- Session management with Redis
+- MFA/2FA with TOTP
+- Role-Based Access Control (RBAC)
+- Permission system
+- Audit logging for security events
+- Email notifications via configurable SMTP
+- Account lockout mechanism
+- Encryption service for secrets
+
+**Out of Scope:**
+- OAuth/Social login (future enhancement)
+- SSO integration (future enhancement)
+- Biometric authentication (future enhancement)
+
+---
+
+## 2. Detailed Functional Requirements
+
+### 2.1 User Management
+
+#### FR-AUTH-001: User Creation
+**Description:** Only authenticated users with appropriate permissions can create new users.
+
+**Actors:** SUPER_ADMIN, ADMIN
+
+**Preconditions:**
+- Actor is authenticated
+- Actor has `users.create` permission
+
+**Input:**
+- Email (required, unique, valid format)
+- Username (required, unique, 3-50 chars)
+- First name (optional)
+- Last name (optional)
+- Role ID (required, must exist)
+- Must change password flag (optional, default: true)
+
+**Process:**
+1. Validate input data
+2. Check email and username uniqueness
+3. Generate secure temporary password (16 chars, mixed case, numbers, symbols)
+4. Hash password using Argon2id
+5. Create user record in database
+6. Create audit log entry
+7. Send welcome email with temporary password
+8. Return user object (without password)
+
+**Output:**
+- User object with generated temporary password
+- Email sent to user
+- Audit log created
+
+**Business Rules:**
+- Email must be unique across system
+- Username must be unique across system
+- Temporary password must meet password policy
+- User marked as `mustChangePassword: true`
+
+**Error Conditions:**
+- Email already exists → 409 Conflict
+- Username already exists → 409 Conflict
+- Invalid role ID → 400 Bad Request
+- Missing required fields → 400 Bad Request
+- No permission → 403 Forbidden
+
+---
+
+#### FR-AUTH-002: User Login
+**Description:** Users authenticate with email and password, optionally with MFA code.
+
+**Actors:** All users
+
+**Preconditions:**
+- User account exists and is active
+- User is not locked out
+
+**Input:**
+- Email (required)
+- Password (required)
+- MFA code (required if user has MFA enabled)
+
+**Process:**
+1. Find user by email
+2. Check if user is active
+3. Check if user is locked out
+4. Verify password against hash
+5. If password invalid:
+   - Increment failed login attempts
+   - If attempts >= 5, lock account for 15 minutes
+   - Send email notification about lockout
+   - Return error
+6. If password valid but MFA enabled:
+   - Verify MFA code
+   - If invalid, return error (don't increment failed attempts)
+7. If all valid:
+   - Reset failed login attempts to 0
+   - Generate JWT access token (24h expiry)
+   - Generate JWT refresh token (7d expiry)
+   - Create session in Redis
+   - Create session record in database
+   - Update last login timestamp and IP
+   - Create audit log entry
+   - Return tokens and user object
+
+**Output:**
+- Access token (JWT)
+- Refresh token (JWT)
+- User object (without password)
+- Session ID
+
+**Business Rules:**
+- Access token expires in 24 hours
+- Refresh token expires in 7 days
+- Failed login attempts reset on successful login
+- Account locks after 5 failed attempts for 15 minutes
+- MFA code valid for 30 seconds window (±1 step for clock skew)
+
+**Error Conditions:**
+- User not found → 401 Unauthorized
+- Invalid password → 401 Unauthorized
+- Account locked → 423 Locked
+- Account inactive → 403 Forbidden
+- Invalid MFA code → 401 Unauthorized
+- Missing MFA code when required → 400 Bad Request
+
+---
+
+#### FR-AUTH-003: Token Refresh
+**Description:** Exchange refresh token for new access token.
+
+**Actors:** All authenticated users
+
+**Preconditions:**
+- Valid refresh token provided
+
+**Input:**
+- Refresh token (required)
+
+**Process:**
+1. Verify refresh token signature
+2. Check token expiration
+3. Find session in database by refresh token hash
+4. Check session expiration
+5. Check user is still active
+6. Generate new access token (24h expiry)
+7. Generate new refresh token (7d expiry)
+8. Update session with new refresh token hash
+9. Delete old refresh token
+10. Return new tokens
+
+**Output:**
+- New access token
+- New refresh token
+
+**Business Rules:**
+- Refresh tokens are single-use (rotated)
+- Old refresh token invalidated immediately
+- New tokens inherit same session metadata
+
+**Error Conditions:**
+- Invalid token → 401 Unauthorized
+- Expired token → 401 Unauthorized
+- Session not found → 401 Unauthorized
+- User inactive → 403 Forbidden
+
+---
+
+#### FR-AUTH-004: Logout
+**Description:** Invalidate user session and tokens.
+
+**Actors:** All authenticated users
+
+**Preconditions:**
+- User is authenticated
+
+**Input:**
+- Access token (from header)
+
+**Process:**
+1. Extract session ID from token
+2. Delete session from Redis
+3. Delete session from database
+4. Create audit log entry
+
+**Output:**
+- Success message
+
+**Business Rules:**
+- Session immediately invalidated
+- Both access and refresh tokens become invalid
+
+**Error Conditions:**
+- Invalid token → 401 Unauthorized
+- Session already expired → 200 OK (idempotent)
+
+---
+
+#### FR-AUTH-005: Password Change
+**Description:** User changes their own password.
+
+**Actors:** All authenticated users
+
+**Preconditions:**
+- User is authenticated
+
+**Input:**
+- Current password (required)
+- New password (required)
+- Confirm new password (required)
+
+**Process:**
+1. Verify current password
+2. Validate new password against policy:
+   - Minimum 12 characters
+   - At least 1 uppercase letter
+   - At least 1 lowercase letter
+   - At least 1 number
+   - At least 1 special character
+3. Check new password != current password
+4. Check new password != last 3 passwords (password history)
+5. Hash new password with Argon2id
+6. Update password in database
+7. Update passwordChangedAt timestamp
+8. Clear mustChangePassword flag
+9. Invalidate all existing sessions except current
+10. Send email notification
+11. Create audit log entry
+
+**Output:**
+- Success message
+- Email sent
+
+**Business Rules:**
+- Password must meet complexity requirements
+- Cannot reuse last 3 passwords
+- All other sessions terminated on password change
+- Current session remains valid
+
+**Error Conditions:**
+- Current password incorrect → 401 Unauthorized
+- New password doesn't meet policy → 400 Bad Request
+- Password reuse detected → 400 Bad Request
+- Passwords don't match → 400 Bad Request
+
+---
+
+#### FR-AUTH-006: Password Reset Request
+**Description:** User requests password reset link via email.
+
+**Actors:** Any user (authenticated or not)
+
+**Preconditions:**
+- None (public endpoint)
+
+**Input:**
+- Email (required)
+
+**Process:**
+1. Find user by email (if not found, still return success - security)
+2. If user found:
+   - Generate secure reset token (32 bytes, hex)
+   - Hash token and store in database
+   - Set expiration (1 hour)
+   - Send email with reset link
+   - Create audit log entry
+3. Always return success (don't reveal if email exists)
+
+**Output:**
+- Success message
+
+**Business Rules:**
+- Reset token expires in 1 hour
+- Only one active reset token per user
+- Previous reset tokens invalidated on new request
+- Don't reveal if email exists (security)
+
+**Error Conditions:**
+- Invalid email format → 400 Bad Request
+- Rate limit exceeded → 429 Too Many Requests
+
+---
+
+#### FR-AUTH-007: Password Reset Confirm
+**Description:** User sets new password using reset token.
+
+**Actors:** Any user (authenticated or not)
+
+**Preconditions:**
+- Valid reset token provided
+
+**Input:**
+- Reset token (required, from URL)
+- New password (required)
+- Confirm password (required)
+
+**Process:**
+1. Hash provided token
+2. Find user by token hash
+3. Check token not expired
+4. Validate new password against policy
+5. Hash new password
+6. Update password
+7. Invalidate reset token
+8. Invalidate all sessions
+9. Send email confirmation
+10. Create audit log entry
+
+**Output:**
+- Success message
+- Email sent
+
+**Business Rules:**
+- Token single-use only
+- All existing sessions terminated
+- Password must meet policy
+
+**Error Conditions:**
+- Invalid token → 400 Bad Request
+- Expired token → 400 Bad Request
+- Password policy violation → 400 Bad Request
+
+---
+
+### 2.2 Multi-Factor Authentication (MFA)
+
+#### FR-AUTH-008: MFA Setup
+**Description:** User sets up TOTP-based MFA.
+
+**Actors:** All authenticated users
+
+**Preconditions:**
+- User is authenticated
+- MFA not already enabled
+
+**Input:**
+- None (initiated by user)
+
+**Process:**
+1. Generate TOTP secret (base32)
+2. Generate QR code URL
+3. Generate 10 backup codes (8 digits each)
+4. Encrypt secret and backup codes
+5. Store encrypted values (MFA not yet enabled)
+6. Return QR code and backup codes to user
+
+**Output:**
+- TOTP secret (base32)
+- QR code data URL
+- 10 backup codes
+
+**Business Rules:**
+- Secret is 32-character base32 string
+- Backup codes are 8 digits each
+- MFA not enabled until verified
+- Secrets encrypted at rest
+
+**Error Conditions:**
+- MFA already enabled → 409 Conflict
+
+---
+
+#### FR-AUTH-009: MFA Verify and Enable
+**Description:** User verifies MFA setup with TOTP code.
+
+**Actors:** All authenticated users
+
+**Preconditions:**
+- User has initiated MFA setup
+- MFA not yet enabled
+
+**Input:**
+- TOTP code (required, 6 digits)
+
+**Process:**
+1. Decrypt stored secret
+2. Verify TOTP code
+3. If valid:
+   - Set mfaEnabled = true
+   - Create audit log entry
+   - Return success
+4. If invalid:
+   - Return error
+   - Don't enable MFA
+
+**Output:**
+- Success message
+
+**Business Rules:**
+- Code must be valid within 30-second window (±1 step)
+- Single verification attempt per request
+
+**Error Conditions:**
+- Invalid code → 400 Bad Request
+- MFA setup not initiated → 400 Bad Request
+- MFA already enabled → 409 Conflict
+
+---
+
+#### FR-AUTH-010: MFA Disable
+**Description:** User disables MFA.
+
+**Actors:** All authenticated users
+
+**Preconditions:**
+- User is authenticated
+- MFA is enabled
+
+**Input:**
+- Current password (required)
+- MFA code or backup code (required)
+
+**Process:**
+1. Verify password
+2. Verify MFA code or backup code
+3. If valid:
+   - Set mfaEnabled = false
+   - Clear mfaSecret
+   - Clear mfaBackupCodes
+   - Create audit log entry
+   - Send email notification
+   - Return success
+
+**Output:**
+- Success message
+- Email sent
+
+**Business Rules:**
+- Requires both password and MFA verification
+- All MFA data cleared
+- Security notification sent
+
+**Error Conditions:**
+- Invalid password → 401 Unauthorized
+- Invalid MFA/backup code → 401 Unauthorized
+- MFA not enabled → 400 Bad Request
+
+---
+
+#### FR-AUTH-011: Backup Code Usage
+**Description:** User logs in using backup code when MFA enabled.
+
+**Actors:** All authenticated users with MFA
+
+**Preconditions:**
+- User has MFA enabled
+- User attempting to login
+
+**Input:**
+- Email (required)
+- Password (required)
+- Backup code (required, instead of TOTP)
+
+**Process:**
+1. Verify email and password
+2. Decrypt backup codes
+3. Check if provided code exists
+4. If valid:
+   - Remove used backup code
+   - Continue login flow
+   - Send email notification (backup code used)
+   - Warn if running low on codes (<3 remaining)
+5. If invalid:
+   - Return error
+
+**Output:**
+- Same as normal login
+- Email notification sent
+
+**Business Rules:**
+- Backup codes are single-use
+- System warns when <3 backup codes remain
+- User can regenerate backup codes anytime
+
+**Error Conditions:**
+- Invalid backup code → 401 Unauthorized
+- All backup codes exhausted → 401 Unauthorized
+
+---
+
+### 2.3 Role-Based Access Control (RBAC)
+
+#### FR-AUTH-012: Role Management
+**Description:** System supports predefined roles with permissions.
+
+**Predefined Roles:**
+
+| Role | Name | Permissions | Can Be Deleted |
+|------|------|-------------|----------------|
+| SUPER_ADMIN | Super Administrator | ALL | No (system role) |
+| ADMIN | Administrator | users.read, users.create, users.update, servers.*, sites.*, incidents.*, settings.read, settings.update | No (system role) |
+| ENGINEER | Engineer | incidents.*, sites.read, servers.read, audit.read | No (system role) |
+| VIEWER | Viewer | *.read | No (system role) |
+
+**Permission Format:** `resource.action`
+- Resources: users, roles, servers, sites, incidents, settings, audit
+- Actions: create, read, update, delete, execute
+
+**Business Rules:**
+- System roles cannot be deleted
+- System roles cannot have permissions modified
+- Custom roles can be created (future enhancement)
+- User can only have one role
+
+---
+
+#### FR-AUTH-013: Permission Check
+**Description:** System verifies user has required permission for action.
+
+**Actors:** System (automatic)
+
+**Process:**
+1. Extract user from JWT token
+2. Get user's role
+3. Get role's permissions
+4. Check if required permission exists
+5. Allow or deny access
+
+**Business Rules:**
+- SUPER_ADMIN bypasses all checks (has all permissions)
+- Permission check occurs on every protected endpoint
+- Denied requests logged in audit log
+
+---
+
+#### FR-AUTH-014: User Role Assignment
+**Description:** Admin assigns role to user.
+
+**Actors:** SUPER_ADMIN, ADMIN
+
+**Preconditions:**
+- Actor has `users.update` permission
+- Target user exists
+- Role exists
+
+**Input:**
+- User ID (required)
+- Role ID (required)
+
+**Process:**
+1. Verify actor has permission
+2. Verify role exists
+3. Update user's role
+4. Invalidate user's active sessions (force re-login)
+5. Create audit log entry
+6. Send email notification to user
+
+**Output:**
+- Updated user object
+- Email sent
+
+**Business Rules:**
+- Role change forces immediate re-login
+- Cannot change own role
+- Cannot change SUPER_ADMIN role (first user)
+
+**Error Conditions:**
+- No permission → 403 Forbidden
+- User not found → 404 Not Found
+- Role not found → 404 Not Found
+- Cannot change own role → 400 Bad Request
+
+---
+
+### 2.4 Session Management
+
+#### FR-AUTH-015: Session Storage
+**Description:** Sessions stored in both Redis (fast access) and PostgreSQL (persistence).
+
+**Session Data:**
+- Session ID (unique)
+- User ID
+- Access token hash
+- Refresh token hash
+- IP address
+- User agent
+- Device fingerprint (optional)
+- Created at
+- Last activity at
+- Expires at
+
+**Storage:**
+- **Redis**: For fast token validation (TTL = 7 days)
+- **PostgreSQL**: For audit trail and session management UI
+
+**Business Rules:**
+- Session expires after 7 days of inactivity
+- Session removed from Redis on expiry (auto TTL)
+- Session kept in PostgreSQL for audit (soft delete)
+
+---
+
+#### FR-AUTH-016: Active Session Viewing
+**Description:** User views their own active sessions.
+
+**Actors:** All authenticated users
+
+**Preconditions:**
+- User is authenticated
+
+**Output:**
+- List of active sessions with:
+  - Device/browser info
+  - IP address
+  - Last activity
+  - Current session indicator
+
+**Business Rules:**
+- Users can only view own sessions
+- SUPER_ADMIN can view all users' sessions
+
+---
+
+#### FR-AUTH-017: Session Revocation
+**Description:** User revokes active session.
+
+**Actors:** All authenticated users
+
+**Preconditions:**
+- User is authenticated
+- Session belongs to user
+
+**Input:**
+- Session ID (required)
+
+**Process:**
+1. Verify session belongs to user (or user is SUPER_ADMIN)
+2. Delete session from Redis
+3. Mark session as revoked in PostgreSQL
+4. Create audit log entry
+
+**Output:**
+- Success message
+
+**Business Rules:**
+- Cannot revoke current session (use logout instead)
+- SUPER_ADMIN can revoke any session
+
+**Error Conditions:**
+- Session not found → 404 Not Found
+- Cannot revoke current session → 400 Bad Request
+- No permission → 403 Forbidden
+
+---
+
+### 2.5 Account Security
+
+#### FR-AUTH-018: Account Lockout
+**Description:** Account locked after failed login attempts.
+
+**Trigger:** 5 consecutive failed login attempts
+
+**Behavior:**
+1. Lock account immediately
+2. Set lockoutUntil = now + 15 minutes
+3. Send email notification to user
+4. Create audit log entry (severity: HIGH)
+
+**Unlock:**
+- Automatic after 15 minutes
+- Manual unlock by SUPER_ADMIN
+
+**Business Rules:**
+- Failed attempts counter resets on successful login
+- Failed MFA attempts don't count toward lockout
+- Locked users cannot login even with correct credentials
+
+---
+
+#### FR-AUTH-019: Password History
+**Description:** Prevent password reuse.
+
+**Storage:** Store hashes of last 3 passwords
+
+**Validation:** When changing password, check against history
+
+**Business Rules:**
+- Maximum 3 passwords stored
+- Oldest password dropped when limit reached
+- History cleared on password reset by admin
+
+---
+
+### 2.6 Audit Logging
+
+#### FR-AUTH-020: Security Audit Log
+**Description:** All security-related events logged.
+
+**Events Logged:**
+- User login (success/failure)
+- User logout
+- Password change
+- Password reset request/confirm
+- MFA setup/disable
+- Backup code usage
+- Role change
+- Permission denial
+- Account lockout
+- Session revocation
+- Token refresh
+
+**Log Data:**
+- Timestamp
+- User ID (if applicable)
+- Action type
+- Resource
+- IP address
+- User agent
+- Result (success/failure)
+- Severity (INFO, WARNING, HIGH, CRITICAL)
+- Additional metadata (JSON)
+
+**Retention:** 90 days minimum
+
+---
+
+### 2.7 Email Notifications
+
+#### FR-AUTH-021: Email Configuration
+**Description:** SUPER_ADMIN configures SMTP settings.
+
+**Settings:**
+- SMTP host
+- SMTP port
+- SMTP username
+- SMTP password (encrypted)
+- SMTP from address
+- SMTP from name
+- Use TLS (boolean)
+
+**Business Rules:**
+- Only SUPER_ADMIN can modify
+- Settings stored encrypted
+- Test email function available
+
+---
+
+#### FR-AUTH-022: Email Templates
+**Description:** System sends predefined email templates.
+
+**Templates:**
+1. Welcome email (new user creation)
+2. Password reset request
+3. Password reset confirmation
+4. Password changed notification
+5. Account locked notification
+6. MFA enabled notification
+7. MFA disabled notification
+8. Backup code used warning
+9. Role changed notification
+10. Session revoked notification
+
+**Format:**
+- HTML and plain text versions
+- Branded with system logo
+- Include relevant action links
+- Security warnings where appropriate
+
+---
+
+### 2.8 First-Time Setup
+
+#### FR-AUTH-023: Initial System Setup
+**Description:** Auto-create default SUPER_ADMIN on first run.
+
+**Trigger:** Database is empty (no users exist)
+
+**Process:**
+1. Check if any users exist
+2. If none:
+   - Generate random secure password (24 chars)
+   - Create SUPER_ADMIN role (if not exists)
+   - Create default admin user:
+     - Email: from env var or admin@wp-autohealer.local
+     - Username: admin
+     - Password: generated password (hashed)
+     - Role: SUPER_ADMIN
+     - mustChangePassword: true
+   - Log credentials to console
+   - Store in secure location
+
+**Output:**
+- Admin credentials logged to console
+- User record created
+
+**Business Rules:**
+- Only runs once
+- Credentials must be changed on first login
+- Seed script idempotent (safe to run multiple times)
+
+---
+
+## 3. Non-Functional Requirements
+
+### 3.1 Performance
+- Login response time: <500ms
+- Token validation: <50ms (Redis lookup)
+- Password hashing: Argon2id with ~250ms target
+- Database queries: <100ms for auth operations
+- Concurrent logins: Support 1000 req/min
+
+### 3.2 Security
+- All passwords hashed with Argon2id
+- JWT tokens signed with HS256
+- Secrets encrypted with libsodium (XSalsa20-Poly1305)
+- HTTPS required in production
+- Rate limiting on auth endpoints
+- CSRF protection
+- XSS protection
+- SQL injection prevention (Prisma)
+
+### 3.3 Scalability
+- Stateless API (horizontal scaling)
+- Redis for session cache
+- Database connection pooling
+- JWT tokens (no server-side storage for access tokens)
+
+### 3.4 Reliability
+- Database transactions for critical operations
+- Session failover (Redis persistence)
+- Audit log resilience (write failures don't block auth)
+- Graceful degradation (email failures don't block auth)
+
+### 3.5 Maintainability
+- Clean architecture (layered)
+- Dependency injection
+- Unit test coverage >80%
+- API documentation (Swagger)
+- Code comments for complex logic
+
+---
+
+## 4. Data Models
+
+### 4.1 User
+```typescript
+{
+  id: string (cuid)
+  email: string (unique)
+  username: string (unique)
+  passwordHash: string
+  firstName: string?
+  lastName: string?
+  avatarUrl: string?
+  
+  // MFA
+  mfaEnabled: boolean
+  mfaSecret: string? (encrypted)
+  mfaBackupCodes: string[] (encrypted)
+  
+  // Security
+  isActive: boolean
+  isLocked: boolean
+  lockoutUntil: DateTime?
+  failedLoginAttempts: number
+  lastLoginAt: DateTime?
+  lastLoginIp: string?
+  passwordChangedAt: DateTime
+  mustChangePassword: boolean
+  passwordHistory: string[] (hashed)
+  
+  // Relations
+  roleId: string
+  role: Role
+  sessions: Session[]
+  
+  // Timestamps
+  createdAt: DateTime
+  updatedAt: DateTime
+  deletedAt: DateTime?
+}
+```
+
+### 4.2 Role
+```typescript
+{
+  id: string (cuid)
+  name: string (unique)
+  displayName: string
+  description: string?
+  isSystem: boolean
+  
+  // Relations
+  permissions: Permission[]
+  users: User[]
+  
+  // Timestamps
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+```
+
+### 4.3 Permission
+```typescript
+{
+  id: string (cuid)
+  resource: string
+  action: string
+  
+  // Relations
+  roleId: string
+  role: Role
+}
+```
+
+### 4.4 Session
+```typescript
+{
+  id: string (cuid)
+  userId: string
+  user: User
+  
+  token: string (access token hash, unique)
+  refreshToken: string (refresh token hash, unique)
+  
+  ipAddress: string
+  userAgent: string
+  deviceFingerprint: string?
+  
+  expiresAt: DateTime
+  lastActivityAt: DateTime
+  
+  createdAt: DateTime
+}
+```
+
+### 4.5 AuditLog
+```typescript
+{
+  id: string (cuid)
+  
+  userId: string?
+  user: User?
+  actorType: enum (USER, SYSTEM, API)
+  actorId: string?
+  
+  action: string
+  resource: string
+  resourceId: string?
+  
+  description: string
+  metadata: JSON?
+  
+  ipAddress: string?
+  userAgent: string?
+  
+  severity: enum (INFO, WARNING, HIGH, CRITICAL)
+  
+  timestamp: DateTime
+}
+```
+
+---
+
+## 5. API Endpoints
+
+### 5.1 Authentication
+```
+POST   /api/v1/auth/login
+POST   /api/v1/auth/logout
+POST   /api/v1/auth/refresh
+POST   /api/v1/auth/password/change
+POST   /api/v1/auth/password/reset/request
+POST   /api/v1/auth/password/reset/confirm
+```
+
+### 5.2 MFA
+```
+POST   /api/v1/auth/mfa/setup
+POST   /api/v1/auth/mfa/verify
+POST   /api/v1/auth/mfa/disable
+POST   /api/v1/auth/mfa/backup-codes/regenerate
+```
+
+### 5.3 Users
+```
+GET    /api/v1/users
+GET    /api/v1/users/:id
+POST   /api/v1/users
+PUT    /api/v1/users/:id
+DELETE /api/v1/users/:id
+PUT    /api/v1/users/:id/activate
+PUT    /api/v1/users/:id/deactivate
+PUT    /api/v1/users/:id/unlock
+PUT    /api/v1/users/:id/role
+```
+
+### 5.4 Sessions
+```
+GET    /api/v1/sessions
+GET    /api/v1/sessions/me
+DELETE /api/v1/sessions/:id
+```
+
+### 5.5 Roles & Permissions
+```
+GET    /api/v1/roles
+GET    /api/v1/roles/:id
+GET    /api/v1/roles/:id/permissions
+```
+
+### 5.6 Settings (SMTP)
+```
+GET    /api/v1/settings/smtp
+PUT    /api/v1/settings/smtp
+POST   /api/v1/settings/smtp/test
+```
+
+### 5.7 Audit Logs
+```
+GET    /api/v1/audit-logs
+GET    /api/v1/audit-logs/security
+```
+
+---
+
+## 6. Dependencies
+
+### 6.1 Internal Dependencies
+- None (this is the foundation module)
+
+### 6.2 External Dependencies
+
+**Backend:**
+- NestJS (framework)
+- Prisma (ORM)
+- PostgreSQL (database)
+- Redis (session cache)
+- argon2 (password hashing)
+- jose (JWT)
+- libsodium (encryption)
+- speakeasy (TOTP)
+- qrcode (QR code generation)
+- nodemailer (email)
+- class-validator (validation)
+- class-transformer (DTO transformation)
+
+**Frontend:**
+- Next.js 14 (framework)
+- React 18
+- TypeScript
+- shadcn/ui (components)
+- Tailwind CSS (styling)
+- Zod (validation)
+- React Hook Form (forms)
+- React Query (data fetching)
+- Zustand (state management)
+
+**DevOps:**
+- Docker & Docker Compose
+- PostgreSQL 16
+- Redis 7
+
+---
+
+## 7. Constraints
+
+### 7.1 Technical Constraints
+- Must use PostgreSQL (no other databases)
+- Must use Redis for session cache
+- JWT tokens must be stateless (no DB lookup for access tokens)
+- MFA must use TOTP standard (RFC 6238)
+- Email sending optional (system works without SMTP configured)
+
+### 7.2 Business Constraints
+- System roles cannot be deleted or modified
+- First user is always SUPER_ADMIN
+- Cannot have zero active SUPER_ADMIN users
+- Audit logs must be immutable
+
+### 7.3 Security Constraints
+- No plain text passwords in logs or responses
+- No secrets in JWT payload
+- All authentication endpoints rate-limited
+- MFA secrets must be encrypted at rest
+- Session tokens must be opaque (hashed)
+
+---
+
+## 8. Testing Requirements
+
+### 8.1 Unit Tests
+- Password hashing/verification
+- JWT generation/validation
+- TOTP generation/validation
+- Permission checking logic
+- Password policy validation
+- Account lockout logic
+- Session expiration logic
+
+### 8.2 Integration Tests
+- Full login flow
+- Password reset flow
+- MFA setup and usage flow
+- Role permission enforcement
+- Session management
+- Audit log creation
+
+### 8.3 E2E Tests
+- User can login via UI
+- User can setup MFA via UI
+- User can change password via UI
+- Admin can create users via UI
+- Theme switching works
+
+### 8.4 Security Tests
+- SQL injection attempts
+- XSS attempts
+- CSRF attempts
+- Brute force protection
+- JWT tampering detection
+- Rate limit enforcement
+
+---
+
+## 9. Acceptance Criteria
+
+**Module is complete when:**
+
+✅ All functional requirements implemented  
+✅ All API endpoints working and documented (Swagger)  
+✅ All UI pages implemented and functional  
+✅ Unit test coverage >80%  
+✅ Integration tests passing  
+✅ E2E tests passing  
+✅ Docker setup working  
+✅ Database migrations working  
+✅ Seed script working (creates default admin)  
+✅ Email notifications working (with SMTP configured)  
+✅ Audit logging working  
+✅ Theme switching working  
+✅ Documentation complete  
+
+---
+
+## 10. Success Metrics
+
+- Login response time <500ms
+- Zero authentication bypasses
+- Zero password leaks
+- 100% audit coverage for security events
+- Zero SQL injection vulnerabilities
+- Zero XSS vulnerabilities
+
+---
+
+## 11. Risks & Mitigations
+
+| Risk | Impact | Probability | Mitigation |
+|------|--------|-------------|------------|
+| Redis failure | High | Low | Fallback to DB-only sessions |
+| Email service failure | Medium | Medium | Queue emails, retry logic |
+| Password hash collision | Critical | Very Low | Use Argon2id with salt |
+| JWT secret leak | Critical | Low | Rotate secrets regularly |
+| Account lockout DOS | Medium | Medium | CAPTCHA after 3 attempts |
+
+---
+
+**END OF FUNCTIONAL REQUIREMENTS**
+
+Ready for implementation approval.
