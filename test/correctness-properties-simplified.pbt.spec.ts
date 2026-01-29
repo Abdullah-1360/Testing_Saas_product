@@ -160,7 +160,7 @@ describe('WP-AutoHealer Correctness Properties (Simplified)', () => {
             expect(auditEvent).toHaveProperty('timestamp');
             expect(auditEvent).toHaveProperty('traceId');
             expect(auditEvent).toHaveProperty('correlationId');
-            expect(auditEvent).toHaveProperty('details');
+            expect(auditEvent).toHaveProperty('metadata');
 
             // Property: Timestamp should be a valid date
             expect(auditEvent.timestamp).toBeInstanceOf(Date);

@@ -298,28 +298,28 @@ describe('AnonymizationService Property-Based Tests', () => {
             expect(auditCall).toHaveProperty('resourceType', 'data_anonymization');
             expect(auditCall.resourceId).toMatch(/^anonymization-\d+$/);
 
-            // Property: Audit details should contain complete operation information
-            expect(auditCall.details).toHaveProperty('retentionDays', config.retentionDays);
-            expect(auditCall.details).toHaveProperty('totalRecordsAnonymized');
-            expect(auditCall.details).toHaveProperty('tablesProcessed');
-            expect(auditCall.details).toHaveProperty('dryRun', config.dryRun);
-            expect(auditCall.details).toHaveProperty('executionTimeMs');
-            expect(auditCall.details).toHaveProperty('results');
-            expect(auditCall.details).toHaveProperty('cutoffDate');
+            // Property: Audit metadata should contain complete operation information
+            expect(auditCall.metadata).toHaveProperty('retentionDays', config.retentionDays);
+            expect(auditCall.metadata).toHaveProperty('totalRecordsAnonymized');
+            expect(auditCall.metadata).toHaveProperty('tablesProcessed');
+            expect(auditCall.metadata).toHaveProperty('dryRun', config.dryRun);
+            expect(auditCall.metadata).toHaveProperty('executionTimeMs');
+            expect(auditCall.metadata).toHaveProperty('results');
+            expect(auditCall.metadata).toHaveProperty('cutoffDate');
 
             // Property: Configuration should be preserved in audit
-            expect(auditCall.details.config).toEqual({
+            expect(auditCall.metadata.config).toEqual({
               anonymizePersonalData: config.anonymizePersonalData,
               anonymizeCredentials: config.anonymizeCredentials,
               anonymizeIpAddresses: config.anonymizeIpAddresses,
             });
 
             // Property: Execution time should be reasonable
-            expect(auditCall.details.executionTimeMs).toBeGreaterThanOrEqual(0);
-            expect(auditCall.details.executionTimeMs).toBeLessThan(60000); // Less than 1 minute
+            expect(auditCall.metadata.executionTimeMs).toBeGreaterThanOrEqual(0);
+            expect(auditCall.metadata.executionTimeMs).toBeLessThan(60000); // Less than 1 minute
 
             // Property: Results should be an array
-            expect(Array.isArray(auditCall.details.results)).toBe(true);
+            expect(Array.isArray(auditCall.metadata.results)).toBe(true);
           }
         ),
         { numRuns: 10 }

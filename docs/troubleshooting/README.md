@@ -78,7 +78,10 @@ npm run reset-password admin@example.com
 
 2. **Disable MFA temporarily:**
 ```bash
-# Connect to database
+# Using the MFA fix script (recommended)
+node fix-mfa.js
+
+# Or connect to database directly
 docker-compose exec postgres psql -U wp_autohealer -d wp_autohealer
 
 # Disable MFA for user

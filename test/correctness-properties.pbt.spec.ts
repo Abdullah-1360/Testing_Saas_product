@@ -343,7 +343,7 @@ describe('WP-AutoHealer Correctness Properties', () => {
               resourceType: auditData.resourceType,
               resourceId: auditData.resourceId,
               userId: auditData.userId,
-              details: {
+              metadata: {
                 ...auditData.details,
                 traceId: auditService.generateTraceId(),
                 correlationId: auditService.generateCorrelationId(),
@@ -376,16 +376,16 @@ describe('WP-AutoHealer Correctness Properties', () => {
             expect(createCall.data).toHaveProperty('resourceType', auditData.resourceType);
             expect(createCall.data).toHaveProperty('resourceId', auditData.resourceId);
             expect(createCall.data).toHaveProperty('userId');
-            expect(createCall.data).toHaveProperty('details');
+            expect(createCall.data).toHaveProperty('metadata');
             
-            // Verify details contain trace and correlation IDs
-            expect(createCall.data.details).toHaveProperty('traceId');
-            expect(createCall.data.details).toHaveProperty('correlationId');
-            expect(createCall.data.details).toHaveProperty('timestamp');
+            // Verify metadata contain trace and correlation IDs
+            expect(createCall.data.metadata).toHaveProperty('traceId');
+            expect(createCall.data.metadata).toHaveProperty('correlationId');
+            expect(createCall.data.metadata).toHaveProperty('timestamp');
             
             // Verify trace and correlation ID formats
-            expect(createCall.data.details.traceId).toMatch(/^trace-\d+-[a-z0-9]{8}$/);
-            expect(createCall.data.details.correlationId).toMatch(/^corr-\d+-[a-z0-9]{8}$/);
+            expect(createCall.data.metadata.traceId).toMatch(/^trace-\d+-[a-z0-9]{8}$/);
+            expect(createCall.data.metadata.correlationId).toMatch(/^corr-\d+-[a-z0-9]{8}$/);
             
             // Verify userId is either the provided one or 'system' (when null/undefined is provided)
             expect(createCall.data.userId).toBeTruthy();
