@@ -61,7 +61,7 @@ SESSION_SECRET=your_generated_session_secret
 ### Step 3: Deploy with Docker
 
 ```bash
-# Start all services
+# Start all services (optimized configuration)
 docker-compose up -d
 
 # Check service status
@@ -69,7 +69,17 @@ docker-compose ps
 
 # View logs (optional)
 docker-compose logs -f
+
+# Verify services are ready
+docker-compose exec postgres pg_isready -U wp_autohealer -d wp_autohealer
+docker-compose exec redis redis-cli ping
 ```
+
+**Startup Optimizations**: The Docker Compose setup includes performance improvements:
+- Faster health checks (5-second intervals)
+- Resource limits to prevent memory issues
+- Optimized PostgreSQL and Redis configurations
+- Improved dependency management for quicker startup
 
 ### Step 4: Initialize Database
 
@@ -248,8 +258,32 @@ docker-compose logs api
 docker-compose logs postgres
 docker-compose logs redis
 
+# Check resource usage
+docker stats
+
+# Verify health checks
+docker-compose exec postgres pg_isready -U wp_autohealer -d wp_autohealer
+docker-compose exec redis redis-cli ping
+
 # Restart services
 docker-compose restart
+
+# If memory issues occur, check resource limits
+docker-compose config
+```
+
+#### Memory or Performance Issues
+```bash
+# Check container resource usage
+docker stats --no-stream
+
+# Verify memory limits are appropriate for your system
+docker-compose exec postgres free -h
+docker-compose exec redis redis-cli info memory
+
+# Adjust resource limits in docker-compose.yml if needed
+# PostgreSQL: increase memory limits if you have >4GB RAM
+# Redis: increase memory limits if you have heavy caching needs
 ```
 
 #### Cannot Connect to Database

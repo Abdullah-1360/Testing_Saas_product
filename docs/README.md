@@ -17,6 +17,7 @@ Welcome to the WP-AutoHealer documentation. This comprehensive guide covers ever
 ### User Guides
 - [Control Panel Manual](./user-guide/README.md) - Complete user interface guide
 - [API Documentation](./api/README.md) - REST API reference and examples
+- [Frontend API Client](./frontend-api-client.md) - Frontend API client features and error handling
 - [CLI Tools](./cli/README.md) - Command-line utilities and scripts
 
 ### Operations & Maintenance
@@ -36,6 +37,7 @@ Welcome to the WP-AutoHealer documentation. This comprehensive guide covers ever
 | Deploy WP-AutoHealer | [Deployment Guide](./deployment/README.md) |
 | Learn the control panel | [User Guide](./user-guide/README.md) |
 | Use the API | [API Documentation](./api/README.md) |
+| Understand frontend client | [Frontend API Client](./frontend-api-client.md) |
 | Fix an issue | [Troubleshooting Guide](./troubleshooting/README.md) |
 | Set up monitoring | [Monitoring Guide](./monitoring/README.md) |
 

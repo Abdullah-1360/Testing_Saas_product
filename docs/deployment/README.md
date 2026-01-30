@@ -24,6 +24,35 @@ This guide provides comprehensive instructions for deploying WP-AutoHealer in pr
 
 ## 🚀 Deployment Methods
 
+### Docker Compose Configuration Optimizations
+
+WP-AutoHealer's Docker Compose setup includes several performance optimizations for production use:
+
+#### Database Optimizations (PostgreSQL)
+- **Data Checksums**: Enabled for data integrity verification
+- **Memory Limits**: 512MB limit with 256MB reservation to prevent resource contention
+- **Health Checks**: Faster 5-second intervals with 3 retries for quicker startup detection
+- **Connection Pooling**: Optimized for concurrent connections
+
+#### Cache Optimizations (Redis)  
+- **Memory Management**: 256MB limit with LRU eviction policy
+- **Persistence**: Optimized save intervals (60s for 1000+ changes)
+- **TCP Keepalive**: 60-second keepalive for connection stability
+- **Health Checks**: 5-second intervals for faster readiness detection
+
+#### Container Resource Management
+- **Memory Limits**: Prevents any single service from consuming excessive memory
+- **CPU Allocation**: Balanced resource distribution across services
+- **Node.js Optimization**: Optimized heap size (512MB) without size optimization flags for better performance
+- **Startup Dependencies**: Optimized service startup order and health check timing
+- **Modern Docker Compose**: Uses Docker Compose v2+ format (version field removed for compatibility)
+
+These optimizations provide:
+- **Faster Startup**: Reduced health check intervals and optimized dependencies
+- **Better Stability**: Resource limits prevent memory exhaustion
+- **Improved Performance**: Tuned database and cache configurations
+- **Production Ready**: Suitable for production workloads with proper resource management
+
 ### Method 1: Docker Compose (Recommended)
 
 The easiest way to deploy WP-AutoHealer is using Docker Compose.
@@ -83,15 +112,25 @@ RATE_LIMIT_MAX_REQUESTS=100
 #### 3. Deploy with Docker Compose
 
 ```bash
-# Build and start all services
+# Build and start all services (optimized for faster startup)
 docker-compose up -d
 
-# Check service status
+# Check service status and health
 docker-compose ps
 
 # View logs
 docker-compose logs -f
+
+# Verify services are healthy
+docker-compose exec api npm run health-check
 ```
+
+**Performance Optimizations**: The Docker Compose configuration includes several optimizations:
+- **Faster Health Checks**: 5-second intervals with 3 retries for quicker startup detection
+- **Resource Limits**: Memory limits prevent resource contention (PostgreSQL: 512M, Redis: 256M)  
+- **Database Tuning**: PostgreSQL with data checksums and optimized parameters
+- **Redis Optimization**: LRU eviction policy, memory limits, and TCP keepalive settings
+- **Node.js Memory Management**: Optimized heap size allocation (512MB) for balanced performance
 
 #### 4. Initialize the Database
 
@@ -500,10 +539,15 @@ sudo nginx -t
 
 ### Database Optimization
 
-```sql
--- PostgreSQL configuration tuning
--- Edit /etc/postgresql/14/main/postgresql.conf
+The Docker Compose configuration includes optimized PostgreSQL settings:
 
+```sql
+-- Current optimized PostgreSQL configuration (already applied in docker-compose.yml):
+-- - Data checksums enabled for integrity
+-- - Memory limits (512MB) with reservations (256MB)
+-- - Faster health checks for quicker startup
+
+-- For manual installations, edit /etc/postgresql/14/main/postgresql.conf:
 shared_buffers = 256MB
 effective_cache_size = 1GB
 maintenance_work_mem = 64MB
@@ -514,16 +558,28 @@ random_page_cost = 1.1
 effective_io_concurrency = 200
 ```
 
+**Docker Compose Benefits**: The containerized PostgreSQL includes automatic resource management and data integrity features.
+
 ### Redis Optimization
 
+The Docker Compose configuration includes optimized Redis settings:
+
 ```bash
-# Edit /etc/redis/redis.conf
+# Current optimized Redis configuration (already applied in docker-compose.yml):
+# - maxmemory 256mb (with LRU eviction)
+# - save 60 1000 (optimized persistence)
+# - tcp-keepalive 60 (connection stability)
+
+# For manual installations, edit /etc/redis/redis.conf:
 maxmemory 512mb
 maxmemory-policy allkeys-lru
 save 900 1
 save 300 10
 save 60 10000
+tcp-keepalive 60
 ```
+
+**Docker Compose Benefits**: The containerized Redis includes automatic memory management and optimized persistence settings.
 
 ### Node.js Optimization
 

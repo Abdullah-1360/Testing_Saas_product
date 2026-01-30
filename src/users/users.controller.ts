@@ -12,11 +12,13 @@ import {
   HttpStatus,
   HttpCode,
   ParseUUIDPipe,
+  Ip,
+  Headers,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserDto, AssignRoleDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/auth/guards/roles.guard';
 import { Roles } from '@/auth/decorators/roles.decorator';
@@ -159,6 +161,44 @@ export class UsersController extends VersionedApiController {
       user.toSafeObject(),
       'Profile retrieved successfully'
     );
+  }
+
+  @Get('lockout-stats')
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Get account lockout statistics' })
+  @ApiResponse({ 
+    status: HttpStatus.OK, 
+    description: 'Lockout statistics retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 200 },
+        message: { type: 'string', example: 'Lockout statistics retrieved successfully' },
+        data: {
+          type: 'object',
+          properties: {
+            totalLockedAccounts: { type: 'number', example: 5 },
+            accountsLockedToday: { type: 'number', example: 2 },
+            topFailedAttemptUsers: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  email: { type: 'string', example: 'user@example.com' },
+                  username: { type: 'string', example: 'username' },
+                  failedAttempts: { type: 'number', example: 3 },
+                },
+              },
+            },
+          },
+        },
+        timestamp: { type: 'string', example: '2024-01-15T10:30:00.000Z' },
+      },
+    },
+  })
+  async getLockoutStats(): Promise<ApiResponseFormat> {
+    const stats = await this.usersService.getLockoutStats();
+    return this.createResponse(stats, 'Lockout statistics retrieved successfully');
   }
 
   @Get('stats')
@@ -414,4 +454,125 @@ export class UsersController extends VersionedApiController {
     await this.usersService.disableMfa(id);
     return this.createResponse(null, 'MFA disabled successfully');
   }
+
+  @Patch(':id/activate')
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Activate user account' })
+  @ApiParam({ name: 'id', description: 'User UUID' })
+  @ApiResponse({ 
+    status: HttpStatus.OK, 
+    description: 'User activated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 200 },
+        message: { type: 'string', example: 'User activated successfully' },
+        timestamp: { type: 'string', example: '2024-01-15T10:30:00.000Z' },
+      },
+    },
+  })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' })
+  async activateUser(@Param('id', ParseUUIDPipe) id: string): Promise<ApiResponseFormat> {
+    await this.usersService.activateUser(id);
+    return this.createResponse(null, 'User activated successfully');
+  }
+
+  @Patch(':id/deactivate')
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Deactivate user account' })
+  @ApiParam({ name: 'id', description: 'User UUID' })
+  @ApiResponse({ 
+    status: HttpStatus.OK, 
+    description: 'User deactivated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 200 },
+        message: { type: 'string', example: 'User deactivated successfully' },
+        timestamp: { type: 'string', example: '2024-01-15T10:30:00.000Z' },
+      },
+    },
+  })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' })
+  async deactivateUser(@Param('id', ParseUUIDPipe) id: string): Promise<ApiResponseFormat> {
+    await this.usersService.deactivateUser(id);
+    return this.createResponse(null, 'User deactivated successfully');
+  }
+
+  @Patch(':id/unlock')
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Unlock user account' })
+  @ApiParam({ name: 'id', description: 'User UUID' })
+  @ApiResponse({ 
+    status: HttpStatus.OK, 
+    description: 'User unlocked successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 200 },
+        message: { type: 'string', example: 'User unlocked successfully' },
+        timestamp: { type: 'string', example: '2024-01-15T10:30:00.000Z' },
+      },
+    },
+  })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' })
+  async unlockUser(@Param('id', ParseUUIDPipe) id: string): Promise<ApiResponseFormat> {
+    await this.usersService.unlockUser(id);
+    return this.createResponse(null, 'User unlocked successfully');
+  }
+
+  @Patch(':id/role')
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Assign role to user' })
+  @ApiParam({ name: 'id', description: 'User UUID' })
+  @ApiResponse({ 
+    status: HttpStatus.OK, 
+    description: 'Role assigned successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 200 },
+        message: { type: 'string', example: 'Role assigned successfully' },
+        timestamp: { type: 'string', example: '2024-01-15T10:30:00.000Z' },
+      },
+    },
+  })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' })
+  async assignRole(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() assignRoleDto: AssignRoleDto,
+    @CurrentUser() currentUser: User,
+  ): Promise<ApiResponseFormat> {
+    await this.usersService.assignRole(id, assignRoleDto, currentUser.id);
+    return this.createResponse(null, 'Role assigned successfully');
+  }
+
+  @Patch(':id/lock')
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Lock user account' })
+  @ApiParam({ name: 'id', description: 'User UUID' })
+  @ApiResponse({ 
+    status: HttpStatus.OK, 
+    description: 'User locked successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 200 },
+        message: { type: 'string', example: 'User locked successfully' },
+        timestamp: { type: 'string', example: '2024-01-15T10:30:00.000Z' },
+      },
+    },
+  })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' })
+  async lockUser(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() lockDto: { reason?: string },
+    @CurrentUser() currentUser: User,
+    @Ip() ipAddress: string,
+    @Headers('user-agent') userAgent: string,
+  ): Promise<ApiResponseFormat> {
+    await this.usersService.lockUser(id, currentUser.id, lockDto.reason, ipAddress, userAgent);
+    return this.createResponse(null, 'User locked successfully');
+  }
+
 }

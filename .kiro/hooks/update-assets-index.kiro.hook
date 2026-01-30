@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Update Assets Index",
+  "description": "Automatically updates the assets folder index.ts file to export new files when they are created in the assets directory",
+  "version": "1",
+  "when": {
+    "type": "fileCreated",
+    "patterns": [
+      "**/assets/**"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A new file has been created in the assets folder. Please update the assets/index.ts file to include an appropriate export for the new file, maintaining proper TypeScript module structure and following existing export patterns."
+  }
+}

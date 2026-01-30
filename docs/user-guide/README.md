@@ -352,7 +352,13 @@ Click any incident to view detailed information:
 
 #### Notification Settings
 
-- **Email Alerts**: Configure SMTP settings
+- **Email Configuration**: Complete SMTP setup via web interface
+  - SMTP Host, Port, and Authentication
+  - From Address and Display Name configuration
+  - TLS/SSL encryption settings
+  - Test email functionality to verify configuration
+  - Encrypted password storage for security
+- **Email Notifications**: Automated emails for user management, security events, and system notifications
 - **Webhook URLs**: External notification endpoints
 - **Alert Thresholds**: When to send notifications
 - **Escalation Rules**: Automatic escalation triggers
@@ -364,7 +370,7 @@ Click any incident to view detailed information:
 - **Ticketing Systems**: Jira, ServiceNow, etc.
 - **Monitoring Tools**: Nagios, Zabbix, etc.
 - **Chat Platforms**: Slack, Teams, etc.
-- **Email Systems**: SMTP configuration
+- **Email Systems**: SMTP configuration via web interface with test functionality
 
 #### API Keys
 

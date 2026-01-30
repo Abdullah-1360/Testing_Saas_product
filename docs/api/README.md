@@ -70,6 +70,22 @@ Include JWT token in all subsequent requests:
 Authorization: Bearer jwt_token_here
 ```
 
+### Token Storage and Management
+
+The frontend client implements a robust token storage strategy for persistence and reliability:
+
+- **Primary Storage**: localStorage for main token persistence
+- **Backup Storage**: sessionStorage for session-based fallback
+- **SSR Support**: Secure HTTP-only cookies for server-side rendering and middleware access
+- **Expiry Tracking**: Automatic token expiration validation using JWT payload
+- **Multi-location Persistence**: Ensures token availability across browser sessions and page reloads
+
+**Token Storage Details:**
+- Tokens are stored with 7-day expiration in cookies
+- Cookie settings: `secure`, `samesite=strict`, `path=/`
+- Automatic expiry extraction from JWT payload for validation
+- Graceful fallback handling for token parsing errors
+
 ### Logout Endpoint
 
 ```http
@@ -558,7 +574,7 @@ Authorization: Bearer jwt_token_here
         "action": "server.create",
         "resourceType": "server",
         "resourceId": "server_uuid",
-        "details": {
+        "metadata": {
           "serverName": "New Server",
           "hostname": "192.168.1.101"
         },
@@ -605,6 +621,175 @@ Content-Type: application/json
 {
   "cutoffDate": "2024-01-10T00:00:00Z",
   "dryRun": false
+}
+```
+
+## 📧 Email Configuration API
+
+### Get SMTP Configuration
+
+```http
+GET /api/v1/auth/settings/smtp
+Authorization: Bearer jwt_token_here
+```
+
+**Required Role:** Admin or Super Admin
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "smtp_config_uuid",
+    "host": "smtp.gmail.com",
+    "port": 587,
+    "username": "notifications@example.com",
+    "fromAddress": "noreply@wp-autohealer.com",
+    "fromName": "WP-AutoHealer",
+    "useTls": true,
+    "isActive": true,
+    "createdAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-01-15T14:30:00Z"
+  }
+}
+```
+
+**Note:** Password field is never returned in responses for security.
+
+### Update SMTP Configuration
+
+```http
+PUT /api/v1/auth/settings/smtp
+Authorization: Bearer jwt_token_here
+Content-Type: application/json
+
+{
+  "host": "smtp.gmail.com",
+  "port": 587,
+  "username": "notifications@example.com",
+  "password": "your_smtp_password",
+  "fromAddress": "noreply@wp-autohealer.com",
+  "fromName": "WP-AutoHealer",
+  "useTls": true,
+  "isActive": true
+}
+```
+
+**Required Role:** Admin or Super Admin
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "smtp_config_uuid",
+    "host": "smtp.gmail.com",
+    "port": 587,
+    "username": "notifications@example.com",
+    "fromAddress": "noreply@wp-autohealer.com",
+    "fromName": "WP-AutoHealer",
+    "useTls": true,
+    "isActive": true,
+    "updatedAt": "2024-01-15T14:30:00Z"
+  }
+}
+```
+
+**Security Features:**
+- Passwords are encrypted at rest using libsodium
+- Only users with Admin or Super Admin roles can modify settings
+- All configuration changes are logged in the audit trail
+
+### Send Test Email
+
+```http
+POST /api/v1/auth/settings/smtp/test
+Authorization: Bearer jwt_token_here
+Content-Type: application/json
+
+{
+  "testEmail": "admin@example.com"
+}
+```
+
+**Required Role:** Admin or Super Admin
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "sent": true,
+    "recipient": "admin@example.com",
+    "messageId": "msg_uuid",
+    "timestamp": "2024-01-15T14:30:00Z"
+  }
+}
+```
+
+**Test Email Contents:**
+- Confirmation that SMTP configuration is working
+- Current system information and timestamp
+- Links to documentation and support resources
+
+### Email Configuration Validation
+
+The API validates SMTP configuration with the following rules:
+
+- **Host**: Required, must be a valid hostname or IP address
+- **Port**: Required, must be between 1-65535
+- **Username**: Required for authentication
+- **Password**: Required for authentication, encrypted at rest
+- **From Address**: Required, must be valid email format
+- **From Name**: Optional, defaults to "WP-AutoHealer"
+- **Use TLS**: Boolean, defaults to true (recommended)
+
+### Error Responses
+
+#### Invalid Configuration
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid SMTP configuration",
+    "details": {
+      "field": "port",
+      "constraint": "must_be_valid_port",
+      "value": 99999
+    }
+  }
+}
+```
+
+#### SMTP Connection Failed
+```json
+{
+  "success": false,
+  "error": {
+    "code": "SMTP_CONNECTION_FAILED",
+    "message": "Could not connect to SMTP server",
+    "details": {
+      "host": "smtp.example.com",
+      "port": 587,
+      "error": "Connection timeout"
+    }
+  }
+}
+```
+
+#### Test Email Failed
+```json
+{
+  "success": false,
+  "error": {
+    "code": "EMAIL_SEND_FAILED",
+    "message": "Failed to send test email",
+    "details": {
+      "recipient": "admin@example.com",
+      "smtpError": "Authentication failed"
+    }
+  }
 }
 ```
 
@@ -663,6 +848,41 @@ Authorization: Bearer jwt_token_here
 - `429` - Rate Limited
 - `500` - Internal Server Error
 
+### Frontend API Client Error Handling
+
+The WP-AutoHealer frontend API client implements robust error handling with the following features:
+
+#### Automatic Retry Logic
+- **Network Errors**: Automatically retried with exponential backoff
+- **Rate Limiting (429)**: Retried with longer delays (2 seconds base)
+- **Server Errors (5xx)**: Retried with standard exponential backoff
+- **Maximum Retries**: 3 attempts per request
+- **Non-Retryable Errors**: Authentication (401) and client errors (4xx) are not retried
+
+#### Error Response Transformation
+All Axios errors are transformed into a consistent `ApiClientError` format:
+
+```typescript
+interface ApiClientError {
+  statusCode: number;
+  code: string;
+  message: string;
+  details?: any;
+  retryable: boolean;
+}
+```
+
+#### Null Safety Improvements
+The client now includes enhanced null safety checks to prevent errors when:
+- Network requests fail completely (no response object)
+- Axios interceptors receive malformed error objects
+- Original request configuration is missing during retry attempts
+
+#### Authentication Error Handling
+- **Token Expiry**: Automatic detection and proactive refresh
+- **401 Responses**: Immediate token cleanup and redirect to login
+- **Multi-location Token Cleanup**: Removes tokens from localStorage, sessionStorage, and cookies
+
 ### Error Response Format
 
 ```json
@@ -710,6 +930,109 @@ class WPAutoHealerAPI {
         'Content-Type': 'application/json'
       }
     });
+    
+    // Enhanced error handling with retry logic
+    this.setupInterceptors();
+    
+    // Store token with enhanced persistence (browser only)
+    if (typeof window !== 'undefined') {
+      this.setToken(token);
+    }
+  }
+
+  setupInterceptors() {
+    // Response interceptor for error handling and retry logic
+    this.client.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+        
+        // Ensure originalRequest exists to prevent null reference errors
+        if (!originalRequest) {
+          return Promise.reject(this.createApiError(error));
+        }
+        
+        // Handle 401 Unauthorized
+        if (error.response?.status === 401) {
+          this.handleUnauthorized();
+          return Promise.reject(this.createApiError(error));
+        }
+        
+        // Handle rate limiting (429) and server errors (5xx) with retry
+        if (this.shouldRetryRequest(error) && !originalRequest._retry) {
+          originalRequest._retry = true;
+          originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
+          
+          if (originalRequest._retryCount <= 3) {
+            const delay = this.calculateRetryDelay(originalRequest._retryCount, error.response?.status);
+            await this.delay(delay);
+            return this.client(originalRequest);
+          }
+        }
+        
+        return Promise.reject(this.createApiError(error));
+      }
+    );
+  }
+
+  createApiError(error) {
+    const isRetryable = !error.response || 
+                       error.response.status === 429 || 
+                       (error.response.status >= 500 && error.response.status < 600);
+
+    return {
+      statusCode: error.response?.status || 500,
+      code: error.response?.data?.code || 'NETWORK_ERROR',
+      message: error.response?.data?.message || error.message,
+      retryable: isRetryable
+    };
+  }
+
+  shouldRetryRequest(error) {
+    if (!error.response) return true; // Network errors
+    const status = error.response.status;
+    return status === 429 || (status >= 500 && status < 600);
+  }
+
+  calculateRetryDelay(retryCount, statusCode) {
+    const baseDelay = statusCode === 429 ? 2000 : 1000;
+    return baseDelay * Math.pow(2, retryCount - 1);
+  }
+
+  delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  handleUnauthorized() {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
+      sessionStorage.removeItem('auth_token');
+      document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+    }
+  }
+
+  setToken(token) {
+    // Multi-location storage for reliability
+    localStorage.setItem('auth_token', token);
+    sessionStorage.setItem('auth_token', token);
+    
+    // Secure cookie for SSR/middleware
+    const expires = new Date();
+    expires.setTime(expires.getTime() + (7 * 24 * 60 * 60 * 1000)); // 7 days
+    document.cookie = `auth_token=${token}; expires=${expires.toUTCString()}; path=/; secure; samesite=strict`;
+    
+    // Store expiry for validation
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.exp) {
+        localStorage.setItem('auth_token_expires', payload.exp.toString());
+      }
+    } catch (e) {
+      console.warn('Could not parse token expiry');
+    }
   }
 
   async getServers() {
@@ -730,6 +1053,22 @@ class WPAutoHealerAPI {
     const response = await this.client.get(`/incidents/${incidentId}`);
     return response.data;
   }
+
+  // Email Configuration Methods
+  async getSmtpConfig() {
+    const response = await this.client.get('/auth/settings/smtp');
+    return response.data;
+  }
+
+  async updateSmtpConfig(config) {
+    const response = await this.client.put('/auth/settings/smtp', config);
+    return response.data;
+  }
+
+  async sendTestEmail(testEmail) {
+    const response = await this.client.post('/auth/settings/smtp/test', { testEmail });
+    return response.data;
+  }
 }
 
 // Usage
@@ -743,6 +1082,25 @@ api.getServers().then(servers => {
 // Create incident
 api.createIncident('site_uuid', 'high').then(incident => {
   console.log('Created incident:', incident.data.id);
+});
+
+// Configure email settings
+api.updateSmtpConfig({
+  host: 'smtp.gmail.com',
+  port: 587,
+  username: 'notifications@example.com',
+  password: 'your_app_password',
+  fromAddress: 'noreply@wp-autohealer.com',
+  fromName: 'WP-AutoHealer',
+  useTls: true,
+  isActive: true
+}).then(config => {
+  console.log('SMTP configured:', config.data.host);
+});
+
+// Send test email
+api.sendTestEmail('admin@example.com').then(result => {
+  console.log('Test email sent:', result.data.sent);
 });
 ```
 
@@ -774,6 +1132,23 @@ class WPAutoHealerAPI:
                                headers=self.headers, 
                                json=data)
         return response.json()
+    
+    def get_smtp_config(self):
+        response = requests.get(f"{self.base_url}/auth/settings/smtp", headers=self.headers)
+        return response.json()
+    
+    def update_smtp_config(self, config):
+        response = requests.put(f"{self.base_url}/auth/settings/smtp", 
+                              headers=self.headers, 
+                              json=config)
+        return response.json()
+    
+    def send_test_email(self, test_email):
+        data = {'testEmail': test_email}
+        response = requests.post(f"{self.base_url}/auth/settings/smtp/test", 
+                               headers=self.headers, 
+                               json=data)
+        return response.json()
 
 # Usage
 api = WPAutoHealerAPI('https://your-domain.com', 'your_jwt_token')
@@ -785,6 +1160,24 @@ print(f"Found {len(servers['data']['items'])} servers")
 # Create incident
 incident = api.create_incident('site_uuid', 'high')
 print(f"Created incident: {incident['data']['id']}")
+
+# Configure email settings
+smtp_config = {
+    'host': 'smtp.gmail.com',
+    'port': 587,
+    'username': 'notifications@example.com',
+    'password': 'your_app_password',
+    'fromAddress': 'noreply@wp-autohealer.com',
+    'fromName': 'WP-AutoHealer',
+    'useTls': True,
+    'isActive': True
+}
+config_result = api.update_smtp_config(smtp_config)
+print(f"SMTP configured: {config_result['data']['host']}")
+
+# Send test email
+test_result = api.send_test_email('admin@example.com')
+print(f"Test email sent: {test_result['data']['sent']}")
 ```
 
 ### cURL Examples
@@ -808,6 +1201,31 @@ curl -X POST https://your-domain.com/api/v1/incidents \
 # Get incident details
 curl -X GET https://your-domain.com/api/v1/incidents/incident_uuid \
   -H "Authorization: Bearer jwt_token_here"
+
+# Get SMTP configuration
+curl -X GET https://your-domain.com/api/v1/auth/settings/smtp \
+  -H "Authorization: Bearer jwt_token_here"
+
+# Update SMTP configuration
+curl -X PUT https://your-domain.com/api/v1/auth/settings/smtp \
+  -H "Authorization: Bearer jwt_token_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "host": "smtp.gmail.com",
+    "port": 587,
+    "username": "notifications@example.com",
+    "password": "your_app_password",
+    "fromAddress": "noreply@wp-autohealer.com",
+    "fromName": "WP-AutoHealer",
+    "useTls": true,
+    "isActive": true
+  }'
+
+# Send test email
+curl -X POST https://your-domain.com/api/v1/auth/settings/smtp/test \
+  -H "Authorization: Bearer jwt_token_here" \
+  -H "Content-Type: application/json" \
+  -d '{"testEmail": "admin@example.com"}'
 ```
 
 ---

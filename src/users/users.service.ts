@@ -561,4 +561,174 @@ export class UsersService {
       orderBy: { name: 'asc' },
     });
   }
+
+  async activateUser(id: string, activatedBy?: string, ipAddress?: string, userAgent?: string): Promise<void> {
+    const user = await this.findOne(id);
+    
+    await this.prisma.user.update({
+      where: { id },
+      data: { 
+        isActive: true,
+        updatedAt: new Date(),
+      },
+    });
+
+    // Create audit event
+    await this.auditService.createAuditEvent({
+      userId: activatedBy,
+      action: 'user_activated',
+      resource: 'user',
+      resourceId: id,
+      details: {
+        description: `User ${user.username} activated`,
+        targetUserId: id,
+        targetUsername: user.username,
+        targetEmail: user.email,
+      },
+      ipAddress,
+      userAgent,
+    });
+  }
+
+  async deactivateUser(id: string, deactivatedBy?: string, ipAddress?: string, userAgent?: string): Promise<void> {
+    const user = await this.findOne(id);
+    
+    await this.prisma.user.update({
+      where: { id },
+      data: { 
+        isActive: false,
+        updatedAt: new Date(),
+      },
+    });
+
+    // Create audit event
+    await this.auditService.createAuditEvent({
+      userId: deactivatedBy,
+      action: 'user_deactivated',
+      resource: 'user',
+      resourceId: id,
+      details: {
+        description: `User ${user.username} deactivated`,
+        targetUserId: id,
+        targetUsername: user.username,
+        targetEmail: user.email,
+      },
+      ipAddress,
+      userAgent,
+    });
+  }
+
+  async unlockUser(id: string, unlockedBy?: string, ipAddress?: string, userAgent?: string): Promise<void> {
+    const user = await this.findOne(id);
+    
+    await this.prisma.user.update({
+      where: { id },
+      data: { 
+        isLocked: false,
+        lockoutUntil: null,
+        failedLoginAttempts: 0,
+        updatedAt: new Date(),
+      },
+    });
+
+    // Create audit event
+    await this.auditService.createAuditEvent({
+      userId: unlockedBy,
+      action: 'user_unlocked',
+      resource: 'user',
+      resourceId: id,
+      details: {
+        description: `User ${user.username} unlocked`,
+        targetUserId: id,
+        targetUsername: user.username,
+        targetEmail: user.email,
+      },
+      ipAddress,
+      userAgent,
+    });
+  }
+
+  async lockUser(id: string, lockedBy: string, reason?: string, ipAddress?: string, userAgent?: string): Promise<void> {
+    const user = await this.findOne(id);
+    
+    // Don't allow locking super admin users
+    if (user.role?.name === 'SUPER_ADMIN') {
+      throw new BadRequestException('Cannot lock super admin users');
+    }
+
+    const lockoutUntil = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours for manual lock
+
+    await this.prisma.user.update({
+      where: { id },
+      data: { 
+        isLocked: true,
+        lockoutUntil,
+        failedLoginAttempts: 5, // Set to max to indicate manual lock
+        updatedAt: new Date(),
+      },
+    });
+
+    // Create audit event
+    await this.auditService.createAuditEvent({
+      userId: lockedBy,
+      action: 'user_locked_manually',
+      resource: 'user',
+      resourceId: id,
+      details: {
+        description: `User ${user.username} locked manually`,
+        targetUserId: id,
+        targetUsername: user.username,
+        targetEmail: user.email,
+        reason: reason || 'manual_lock',
+        lockoutUntil: lockoutUntil.toISOString(),
+      },
+      ipAddress,
+      userAgent,
+    });
+  }
+
+  async getLockoutStats(): Promise<{
+    totalLockedAccounts: number;
+    accountsLockedToday: number;
+    topFailedAttemptUsers: Array<{ email: string; username: string; failedAttempts: number }>;
+  }> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [totalLocked, lockedToday, topFailedUsers] = await Promise.all([
+      this.prisma.user.count({
+        where: { isLocked: true },
+      }),
+      this.prisma.auditEvent.count({
+        where: {
+          action: { in: ['account_locked', 'user_locked_manually'] },
+          timestamp: { gte: today },
+        },
+      }),
+      this.prisma.user.findMany({
+        where: {
+          failedLoginAttempts: { gt: 0 },
+        },
+        select: {
+          email: true,
+          username: true,
+          failedLoginAttempts: true,
+        },
+        orderBy: {
+          failedLoginAttempts: 'desc',
+        },
+        take: 10,
+      }),
+    ]);
+
+    return {
+      totalLockedAccounts: totalLocked,
+      accountsLockedToday: lockedToday,
+      topFailedAttemptUsers: topFailedUsers.map(user => ({
+        email: user.email,
+        username: user.username,
+        failedAttempts: user.failedLoginAttempts,
+      })),
+    };
+  }
 }

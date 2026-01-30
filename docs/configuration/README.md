@@ -57,7 +57,26 @@ REDIS_DB=0                          # Redis database number
 # Redis Pool Settings
 REDIS_POOL_SIZE=10                  # Maximum connections
 REDIS_POOL_MIN=2                    # Minimum connections
+
+# Redis Memory Management
+REDIS_MAXMEMORY=256mb               # Maximum memory usage
+REDIS_MAXMEMORY_POLICY=allkeys-lru  # Eviction policy when memory limit reached
 ```
+
+#### Redis Memory Policies
+
+WP-AutoHealer uses the `allkeys-lru` eviction policy for optimal cache performance:
+
+- **allkeys-lru** (Recommended): Evicts least recently used keys from all keys when memory limit is reached
+- **noeviction**: Returns errors when memory limit is reached (not recommended for cache workloads)
+- **volatile-lru**: Only evicts LRU keys that have an expiration set
+- **allkeys-random**: Randomly evicts keys when memory limit is reached
+
+The `allkeys-lru` policy is optimal for WP-AutoHealer because:
+- **Cache Efficiency**: Automatically manages cache size by removing least-used data
+- **Prevents Memory Errors**: Avoids Redis memory errors that could crash job processing
+- **Performance**: Maintains optimal performance by keeping frequently accessed data in memory
+- **BullMQ Compatibility**: Works well with job queue data that has varying access patterns
 
 ### Security Configuration
 
@@ -161,19 +180,172 @@ HEALTH_CHECK_INTERVAL=30000       # Health check interval (ms)
 ### Email and Notifications
 
 ```bash
-# SMTP Configuration
+# SMTP Configuration (can also be configured via UI)
 SMTP_HOST=smtp.example.com        # SMTP server host
 SMTP_PORT=587                     # SMTP server port
 SMTP_SECURE=true                  # Use TLS/SSL
 SMTP_USER=notifications@example.com  # SMTP username
 SMTP_PASSWORD=smtp_password       # SMTP password
 SMTP_FROM=noreply@wp-autohealer.com  # Default sender email
+SMTP_FROM_NAME="WP-AutoHealer"    # Default sender name
 
 # Notification Settings
 NOTIFICATIONS_ENABLED=true        # Enable notifications
 NOTIFICATION_CHANNELS=email,webhook  # Enabled channels
 WEBHOOK_URL=https://hooks.slack.com/services/...  # Webhook URL
 ```
+
+## 📧 Email Configuration
+
+WP-AutoHealer supports email notifications for various system events including user account management, incident alerts, and system notifications. Email configuration can be managed both through environment variables and the web interface.
+
+### SMTP Configuration via Web Interface
+
+The system provides a user-friendly interface for configuring SMTP settings:
+
+1. **Navigate to Settings**: Go to Settings → Email Configuration
+2. **Configure SMTP Settings**:
+   - **SMTP Host**: Your email provider's SMTP server (e.g., `smtp.gmail.com`)
+   - **SMTP Port**: Usually 587 for TLS or 465 for SSL
+   - **Username**: Your SMTP authentication username
+   - **Password**: Your SMTP authentication password (encrypted at rest)
+   - **From Email Address**: The sender email address for system notifications
+   - **From Name**: The display name for system emails (default: "WP-AutoHealer")
+   - **Use TLS**: Enable TLS encryption (recommended)
+
+3. **Test Configuration**: Use the built-in test email feature to verify settings
+4. **Save Configuration**: Settings are encrypted and stored securely in the database
+
+### Email Templates and Notifications
+
+The system sends automated emails for the following events:
+
+#### Authentication Events
+- **Welcome Email**: Sent when a new user account is created
+- **Password Reset**: Sent when a user requests a password reset
+- **Password Changed**: Confirmation when password is successfully changed
+- **Account Locked**: Notification when account is locked due to failed login attempts
+- **MFA Enabled/Disabled**: Confirmation of MFA status changes
+- **Backup Code Used**: Security alert when MFA backup codes are used
+
+#### System Events
+- **Role Changed**: Notification when user role is modified
+- **Session Revoked**: Alert when user sessions are terminated
+- **System Maintenance**: Notifications about scheduled maintenance
+
+#### Incident Notifications (Future Enhancement)
+- **Critical Incidents**: Immediate alerts for P0/P1 incidents
+- **Incident Resolution**: Confirmation when incidents are resolved
+- **Escalation Alerts**: Notifications when incidents require human intervention
+
+### SMTP Provider Examples
+
+#### Gmail Configuration
+```bash
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password  # Use App Password, not regular password
+SMTP_FROM=noreply@yourdomain.com
+SMTP_FROM_NAME="WP-AutoHealer"
+```
+
+#### SendGrid Configuration
+```bash
+SMTP_HOST=smtp.sendgrid.net
+SMTP_PORT=587
+SMTP_USER=apikey
+SMTP_PASSWORD=your-sendgrid-api-key
+SMTP_FROM=noreply@yourdomain.com
+SMTP_FROM_NAME="WP-AutoHealer"
+```
+
+#### Amazon SES Configuration
+```bash
+SMTP_HOST=email-smtp.us-east-1.amazonaws.com
+SMTP_PORT=587
+SMTP_USER=your-ses-smtp-username
+SMTP_PASSWORD=your-ses-smtp-password
+SMTP_FROM=noreply@yourdomain.com
+SMTP_FROM_NAME="WP-AutoHealer"
+```
+
+### Security Considerations
+
+- **Password Encryption**: SMTP passwords are encrypted at rest using libsodium
+- **TLS Encryption**: Always use TLS for SMTP connections in production
+- **From Address Validation**: Ensure the from address is authorized by your SMTP provider
+- **Rate Limiting**: Email sending is subject to rate limiting to prevent abuse
+- **Audit Trail**: All email configuration changes are logged in the audit trail
+
+### Troubleshooting Email Issues
+
+#### Common Issues and Solutions
+
+1. **Authentication Failed**
+   - Verify username and password are correct
+   - For Gmail, use App Passwords instead of regular password
+   - Check if 2FA is enabled on your email account
+
+2. **Connection Timeout**
+   - Verify SMTP host and port are correct
+   - Check firewall settings allow outbound SMTP connections
+   - Ensure TLS settings match your provider's requirements
+
+3. **Emails Not Delivered**
+   - Check spam/junk folders
+   - Verify from address is authorized by SMTP provider
+   - Review email provider's sending limits and quotas
+
+4. **SSL/TLS Errors**
+   - Ensure correct port for TLS (587) or SSL (465)
+   - Verify your SMTP provider supports the encryption method
+   - Check certificate validity
+
+#### Test Email Feature
+
+Use the built-in test email feature to validate your configuration:
+
+1. Navigate to Settings → Email Configuration
+2. Scroll to "Test Email Configuration" section
+3. Enter a test email address
+4. Click "Send Test Email"
+5. Check the specified email address for the test message
+
+The test email will contain:
+- Confirmation that SMTP configuration is working
+- Current timestamp and system information
+- Links to documentation and support resources
+
+### API Endpoints for Email Configuration
+
+For programmatic access to email settings:
+
+```bash
+# Get current SMTP configuration (passwords redacted)
+GET /api/v1/auth/settings/smtp
+
+# Update SMTP configuration
+PUT /api/v1/auth/settings/smtp
+{
+  "host": "smtp.gmail.com",
+  "port": 587,
+  "username": "your-email@gmail.com",
+  "password": "your-password",
+  "fromAddress": "noreply@yourdomain.com",
+  "fromName": "WP-AutoHealer",
+  "useTls": true,
+  "isActive": true
+}
+
+# Send test email
+POST /api/v1/auth/settings/smtp/test
+{
+  "testEmail": "admin@example.com"
+}
+```
+
+**Note**: Only users with SUPER_ADMIN or ADMIN roles can modify email configuration settings.
 
 ## 🗄️ Database Configuration
 
@@ -546,8 +718,8 @@ effective_io_concurrency = 200          # Concurrent I/O operations
 ```bash
 # redis.conf
 # Memory management
-maxmemory 512mb
-maxmemory-policy allkeys-lru
+maxmemory 256mb
+maxmemory-policy allkeys-lru    # LRU eviction for optimal cache performance
 
 # Persistence
 save 900 1      # Save if at least 1 key changed in 900 seconds
@@ -555,7 +727,7 @@ save 300 10     # Save if at least 10 keys changed in 300 seconds
 save 60 10000   # Save if at least 10000 keys changed in 60 seconds
 
 # Network
-tcp-keepalive 300
+tcp-keepalive 60    # Optimized keepalive for Docker environments
 timeout 0
 
 # Performance
@@ -577,8 +749,7 @@ module.exports = {
     exec_mode: 'cluster',
     max_memory_restart: '1G',
     node_args: [
-      '--max-old-space-size=1024',
-      '--optimize-for-size'
+      '--max-old-space-size=1024'
     ],
     env: {
       NODE_ENV: 'production',

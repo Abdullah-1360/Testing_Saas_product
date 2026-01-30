@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Pre-Code Impact Analysis",
+  "description": "Automatically analyzes the potential impact and risks before generating any code using the sequential-thinking MCP tool",
+  "version": "1",
+  "when": {
+    "type": "promptSubmit"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Before proceeding with any code generation, use the sequential-thinking MCP tool to analyze:\n\n1. **Risk Assessment**: What are the potential risks and side effects of the requested code changes?\n2. **Impact Analysis**: How will this affect existing functionality, security, and system stability?\n3. **Safety Considerations**: Are there any \"Do No Harm\" policy violations or irreversible operations?\n4. **Dependencies**: What other components or systems might be affected?\n5. **Rollback Strategy**: How can changes be safely reverted if needed?\n\nOnly proceed with code generation after completing this analysis and confirming the approach is safe and appropriate."
+  }
+}

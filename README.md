@@ -14,6 +14,7 @@ Production-grade WordPress self-healing system that functions as an autonomous L
 - **Multi-Server Support**: Manage WordPress sites across multiple servers
 - **Real-time Monitoring**: Live incident tracking with WebSocket updates
 - **Role-Based Access Control**: Secure multi-user access with MFA support
+- **Email Notifications**: Comprehensive SMTP configuration with web-based setup and testing
 - **Property-Based Testing**: Comprehensive correctness verification
 - **Data Retention Management**: Configurable retention policies with automatic purging
 
@@ -24,7 +25,7 @@ Production-grade WordPress self-healing system that functions as an autonomous L
 - **Backend**: NestJS with TypeScript
 - **Database**: PostgreSQL with Prisma ORM
 - **Queue System**: BullMQ with Redis
-- **Frontend**: Next.js with App Router (separate repository)
+- **Frontend**: Next.js with App Router (separate repository) - Enhanced API client with automatic retry logic and robust error handling
 - **Security**: libsodium encryption, strict SSH verification
 - **Testing**: Jest with fast-check for property-based testing
 
@@ -172,6 +173,12 @@ POST /api/v1/auth/mfa/verify
 - `GET /api/v1/sites` - List sites
 - `POST /api/v1/sites` - Add site
 
+### Email Configuration Endpoints
+
+- `GET /api/v1/auth/settings/smtp` - Get SMTP configuration
+- `PUT /api/v1/auth/settings/smtp` - Update SMTP settings
+- `POST /api/v1/auth/settings/smtp/test` - Send test email
+
 ## 🔧 Configuration
 
 ### Environment Variables
@@ -261,9 +268,28 @@ The application exposes metrics for monitoring:
 # Build image
 docker build -t wp-autohealer .
 
-# Run with docker-compose
+# Run with docker-compose (optimized for faster startup)
 docker-compose up -d
+
+# Check service health
+docker-compose ps
+docker-compose logs -f
 ```
+
+#### Docker Compose Optimizations
+
+The Docker Compose configuration includes several performance optimizations:
+
+- **Faster Health Checks**: Reduced intervals (5s) and fewer retries for quicker startup detection
+- **Resource Limits**: Memory limits prevent resource contention (PostgreSQL: 512M, Redis: 256M)
+- **PostgreSQL Optimizations**: Data checksums enabled, optimized startup parameters
+- **Redis Optimizations**: 
+  - **LRU Eviction Policy**: Uses `allkeys-lru` for optimal cache performance when memory limit is reached
+  - **Memory Management**: 256MB limit with intelligent key eviction
+  - **TCP Keepalive**: Optimized keepalive settings (60s) for Docker networking
+  - **Persistence**: Balanced save intervals for data durability
+- **Node.js Memory Management**: Optimized heap size allocation (512MB) for balanced performance
+- **Improved Startup Time**: Optimized health check timing and dependency management
 
 ### Production Considerations
 

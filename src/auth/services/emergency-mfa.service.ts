@@ -1,8 +1,9 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '@/database/prisma.service';
-import { AuditService } from '@/audit/audit.service';
-import { UsersService } from '@/users/users.service';
 import { User, Role, AuditEvent } from '@prisma/client';
+
+import { AuditService } from '@/audit/audit.service';
+import { PrismaService } from '@/database/prisma.service';
+import { UsersService } from '@/users/users.service';
 
 export interface EmergencyMfaDisableOptions {
   targetUserId: string;
@@ -139,7 +140,10 @@ export class EmergencyMfaService {
       throw new BadRequestException('Cannot disable MFA for inactive user');
     }
 
-    return { admin, targetUser };
+    return { 
+      admin: admin as UserWithRole, 
+      targetUser: targetUser as UserWithRole 
+    };
   }
 
   /**

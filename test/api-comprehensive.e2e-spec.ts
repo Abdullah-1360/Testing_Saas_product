@@ -22,8 +22,8 @@ import * as bcrypt from 'bcrypt';
 describe('Comprehensive API Testing (e2e)', () => {
   let app: INestApplication;
   let prismaService: PrismaService;
-  let tokens: Record<string, string> = {};
-  let testData: Record<string, any> = {};
+  const tokens: Record<string, string> = {};
+  const testData: Record<string, any> = {};
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({

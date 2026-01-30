@@ -5,94 +5,132 @@ fileMatchPattern: ['frontend/**/*.tsx', 'frontend/**/*.ts', 'frontend/**/*.css']
 
 # WP-AutoHealer Frontend Design System
 
-## CRITICAL RULES FOR AI ASSISTANTS
+## Critical Rules for AI Assistants
 
-### 1. Design Token Usage (MANDATORY)
-- **NEVER use hardcoded colors, spacing, or typography values**
-- **ALWAYS reference CSS custom properties or Tailwind classes**
-- **Location**: All design tokens are defined in `frontend/src/app/globals.css`
+### 1. Styling Architecture (MANDATORY)
+**ALWAYS inspect existing code patterns first** - Check the current component/page before making styling decisions.
 
-```css
-/* Required CSS Custom Properties */
-:root {
-  --primary: #3b82f6;
-  --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --background: #ffffff;
-  --foreground: #1e293b;
-  --muted: #f8fafc;
-  --border: #e2e8f0;
-  --radius: 0.5rem;
-}
+**Hybrid Approach**: Use design tokens for semantic colors, Tailwind utilities for layout/spacing/structure.
+
+#### Design Tokens (Semantic Colors Only)
+```tsx
+// Primary system colors
+bg-background, text-foreground           // Main app background/text
+bg-muted, text-muted-foreground         // Subtle backgrounds/secondary text
+bg-primary, text-primary-foreground     // Brand colors, CTAs
+bg-secondary, text-secondary-foreground // Secondary actions
+bg-card, text-card-foreground           // Card containers
+border-border                           // Standard borders
+
+// Status colors
+bg-destructive, text-destructive-foreground  // Errors, critical states
+bg-success, text-success-foreground          // Success confirmations
+bg-warning, text-warning-foreground          // Warnings, cautions
 ```
 
-### 2. Component Architecture Rules
-- **File Location**: `frontend/src/components/`
+#### Tailwind Utilities (Layout & Structure)
+```tsx
+// Layout patterns
+"p-6 space-y-4 grid grid-cols-1 md:grid-cols-2"
+"flex items-center justify-between gap-4"
+"w-full max-w-4xl mx-auto"
+
+// Legacy gray scale (match existing code)
+"bg-white text-gray-900 border-gray-200"
+"bg-gray-50 text-gray-700 border-gray-300"
+```
+
+### 2. Component Architecture Standards
+- **Location**: `frontend/src/components/{feature}/`
 - **Pattern**: React functional components with TypeScript
-- **Naming**: PascalCase for components, kebab-case for files
+- **Naming**: PascalCase components, kebab-case files
 - **Structure**: Feature-based organization (incidents/, servers/, sites/, users/)
+- **Required**: TypeScript interfaces for all props
 
-### 3. Required Styling Patterns
+### 3. Essential UI Component Patterns
 
-#### Buttons (Use these exact patterns)
+#### Buttons (Copy Existing Patterns)
 ```tsx
-// Primary button
-className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md transition-colors duration-200"
+// Primary (most common existing pattern)
+"inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
 
-// Secondary button  
-className="bg-secondary text-foreground hover:bg-secondary/80 px-4 py-2 rounded-md transition-colors duration-200"
+// Secondary (existing pattern)
+"inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
 
-// Destructive button
-className="bg-destructive text-destructive-foreground hover:bg-destructive/90 px-4 py-2 rounded-md transition-colors duration-200"
+// Design token alternative (new components only)
+"bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md transition-colors"
 ```
 
-#### Cards (Use this exact pattern)
+#### Cards (Match Existing)
 ```tsx
-className="bg-card border border-border rounded-lg p-6 shadow-sm"
+// Standard card (most common)
+"bg-white overflow-hidden shadow rounded-lg"
+
+// With content padding
+"bg-white shadow overflow-hidden sm:rounded-md p-6"
+
+// Design token version
+"bg-card border border-border rounded-lg p-6 shadow-sm"
 ```
 
-#### Form Inputs (Use this exact pattern)
+#### Form Controls
 ```tsx
-// Default input
-className="block w-full border border-border rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary transition-colors duration-200"
+// Input field
+"block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 
 // Error state
-className="block w-full border border-destructive rounded-md px-3 py-2 focus:ring-2 focus:ring-destructive focus:border-destructive"
-
-// Success state  
-className="block w-full border border-success rounded-md px-3 py-2 focus:ring-2 focus:ring-success focus:border-success"
+"border-red-300 focus:ring-red-500 focus:border-red-500"
 ```
 
-### 4. Icon System (MANDATORY)
-- **Library**: Heroicons only (`@heroicons/react/24/outline` and `@heroicons/react/24/solid`)
-- **Import Pattern**: `import { IconName } from '@heroicons/react/24/outline';`
-- **Size Classes**: `h-4 w-4` (small), `h-5 w-5` (medium), `h-6 w-6` (large), `h-8 w-8` (xl)
-- **Color**: Always use `text-muted-foreground` unless semantic color needed
+### 4. Icon System (STRICT REQUIREMENT)
+**ONLY use Heroicons** - No other icon libraries allowed.
 
 ```tsx
-import { ShieldCheckIcon } from '@heroicons/react/24/outline';
+// Import pattern
+import { IconName } from '@heroicons/react/24/outline';
+import { IconName } from '@heroicons/react/24/solid';
+
+// Standard sizes
+h-4 w-4  // Small (16px)
+h-5 w-5  // Medium (20px) - most common
+h-6 w-6  // Large (24px)
+h-8 w-8  // Extra large (32px)
+
+// Default styling
 <ShieldCheckIcon className="h-5 w-5 text-muted-foreground" />
 ```
 
-### 5. Typography Scale (Use exact classes)
-- **H1**: `text-3xl font-extrabold text-foreground`
-- **H2**: `text-2xl font-bold text-foreground`  
-- **H3**: `text-lg font-medium text-foreground`
-- **Body**: `text-sm text-foreground`
-- **Caption**: `text-xs text-muted-foreground`
+### 5. Typography Hierarchy
+```tsx
+// Page titles
+"text-3xl font-extrabold text-foreground"
 
-### 6. Layout Patterns (Required Structure)
+// Section headers  
+"text-2xl font-bold text-foreground"
 
-#### Page Layout (Use this exact pattern)
+// Subsection headers
+"text-lg font-medium text-foreground"
+
+// Body text
+"text-sm text-foreground"
+
+// Secondary/helper text
+"text-xs text-muted-foreground"
+```
+
+### 6. Layout Patterns
+
+#### Standard Page Structure
 ```tsx
 <DashboardLayout>
   <div className="space-y-6">
+    {/* Page header */}
     <div className="flex justify-between items-center">
-      <h1 className="text-2xl font-bold text-foreground">Page Title</h1>
-      <div className="flex gap-2">
-        {/* Action buttons */}
-      </div>
+      <h1 className="text-2xl font-bold text-foreground">Title</h1>
+      <div className="flex gap-2">{/* Actions */}</div>
     </div>
+    
+    {/* Main content */}
     <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
       {/* Content */}
     </div>
@@ -100,86 +138,141 @@ import { ShieldCheckIcon } from '@heroicons/react/24/outline';
 </DashboardLayout>
 ```
 
-#### Status Indicators (WP-AutoHealer specific)
+#### Responsive Grid Patterns
+```tsx
+// Mobile-first responsive
+"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+
+// Breakpoints: sm(640px), md(768px), lg(1024px), xl(1280px)
+```
+
+### 7. WP-AutoHealer Status System
+**Copy these exact patterns for consistency:**
+
 ```tsx
 // Incident status badges
-const statusStyles = {
+const incidentStatus = {
   open: "bg-destructive/10 text-destructive border-destructive/20",
   investigating: "bg-warning/10 text-warning border-warning/20", 
   resolved: "bg-success/10 text-success border-success/20",
   closed: "bg-muted text-muted-foreground border-border"
 };
 
-// Server status indicators
-const serverStatusStyles = {
+// Server connection status
+const serverStatus = {
   online: "bg-success/10 text-success",
-  offline: "bg-destructive/10 text-destructive",
+  offline: "bg-destructive/10 text-destructive", 
   maintenance: "bg-warning/10 text-warning"
 };
-```
 
-### 7. Responsive Design Rules
-- **Approach**: Mobile-first with Tailwind breakpoints
-- **Breakpoints**: `sm:` (640px), `md:` (768px), `lg:` (1024px), `xl:` (1280px)
-- **Grid**: Use `grid-cols-1 md:grid-cols-2 lg:grid-cols-3` patterns
-- **Spacing**: Adjust padding/margins with responsive classes
-
-### 8. Animation Standards
-- **Transitions**: Always use `transition-colors duration-200` for color changes
-- **Loading**: Use `animate-spin` for spinners, `animate-pulse` for skeleton loading
-- **Hover Effects**: Opacity changes (`hover:opacity-80`) or color variations (`hover:bg-primary/90`)
-
-### 9. Accessibility Requirements (MANDATORY)
-- **Focus States**: All interactive elements must have visible focus rings
-- **ARIA Labels**: Required for icon-only buttons and complex interactions
-- **Semantic HTML**: Use proper heading hierarchy, form labels, button elements
-- **Color Contrast**: Minimum 4.5:1 ratio (handled by design tokens)
-
-### 10. Component State Management
-- **Loading States**: Show spinners or skeleton UI during async operations
-- **Error States**: Use destructive colors and clear error messages
-- **Empty States**: Provide helpful messaging and actions
-- **Success States**: Use success colors for confirmations
-
-## WP-AutoHealer Specific Patterns
-
-### Incident Management UI
-```tsx
-// Incident timeline item
-className="border-l-2 border-muted pl-4 pb-4 last:pb-0"
-
-// Severity indicators
-const severityStyles = {
+// Severity levels
+const severity = {
   critical: "bg-destructive text-destructive-foreground",
-  high: "bg-warning text-warning-foreground", 
-  medium: "bg-primary text-primary-foreground",
+  high: "bg-warning text-warning-foreground",
+  medium: "bg-primary text-primary-foreground", 
   low: "bg-muted text-muted-foreground"
 };
 ```
 
-### Server Management UI
+### 8. Interaction Standards
 ```tsx
-// Server connection status
-className="inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium"
+// Transitions (use consistently)
+"transition-colors duration-200"
 
-// Command execution results
-className="bg-muted rounded-md p-3 font-mono text-xs overflow-x-auto"
+// Loading states
+"animate-spin"      // Spinners
+"animate-pulse"     // Skeleton loading
+
+// Hover effects
+"hover:opacity-80"     // Subtle fade
+"hover:bg-primary/90"  // Color variation
 ```
 
-### Site Health Indicators
-```tsx
-// Health score visualization
-className="flex items-center gap-2 text-sm"
+### 9. Accessibility Requirements (NON-NEGOTIABLE)
+- **Focus rings**: All interactive elements need visible focus states
+- **ARIA labels**: Required for icon-only buttons and complex UI
+- **Semantic HTML**: Proper headings, form labels, button elements
+- **Color contrast**: Design tokens ensure 4.5:1 minimum ratio
 
-// WordPress version badges
-className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-secondary text-secondary-foreground"
+### 10. Component State Patterns
+```tsx
+// Loading state
+{isLoading && <div className="animate-pulse">Loading...</div>}
+
+// Error state  
+{error && (
+  <div className="bg-destructive/10 text-destructive p-4 rounded-md">
+    {error.message}
+  </div>
+)}
+
+// Empty state
+{items.length === 0 && (
+  <div className="text-center py-8 text-muted-foreground">
+    No items found
+  </div>
+)}
+
+// Success confirmation
+{success && (
+  <div className="bg-success/10 text-success p-4 rounded-md">
+    Operation completed successfully
+  </div>
+)}
 ```
 
-## FORBIDDEN PRACTICES
-- ❌ Never use inline styles
-- ❌ Never use hardcoded hex colors
-- ❌ Never use arbitrary Tailwind values without design tokens
-- ❌ Never create components without TypeScript interfaces
-- ❌ Never skip accessibility attributes
-- ❌ Never use CSS modules or styled-components (Tailwind only)
-- ❌ Never import icons from libraries other than Heroicons
+## Domain-Specific UI Patterns
+
+### Incident Management
+```tsx
+// Timeline entries
+"border-l-2 border-muted pl-4 pb-4 last:pb-0"
+
+// Status badges (use exact patterns from section 7)
+"inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+```
+
+### Server Management  
+```tsx
+// Connection indicators
+"inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium"
+
+// SSH command output
+"bg-muted rounded-md p-3 font-mono text-xs overflow-x-auto whitespace-pre-wrap"
+```
+
+### WordPress Site Health
+```tsx
+// Health status indicators
+"flex items-center gap-2 text-sm"
+
+// Version/plugin badges
+"inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-secondary text-secondary-foreground"
+```
+
+## Implementation Rules for AI Assistants
+
+### ALWAYS DO
+- ✅ **Inspect existing code first** - Match patterns in the same component/page
+- ✅ Use Tailwind for layout, spacing, responsive design
+- ✅ Use design tokens for semantic colors (primary, success, destructive, etc.)
+- ✅ Import icons from Heroicons only
+- ✅ Include TypeScript interfaces for all component props
+- ✅ Add proper accessibility attributes (ARIA labels, focus states)
+- ✅ Follow mobile-first responsive design principles
+
+### NEVER DO
+- ❌ Use inline styles or CSS-in-JS
+- ❌ Create arbitrary Tailwind values without justification
+- ❌ Skip TypeScript interfaces
+- ❌ Ignore accessibility requirements
+- ❌ Import icons from non-Heroicons libraries
+- ❌ Force design tokens where existing code uses Tailwind utilities
+- ❌ Create components without proper error/loading/empty states
+
+### Decision Framework
+1. **Check existing code** - What patterns are already used?
+2. **Match the context** - New component or updating existing?
+3. **Choose styling approach** - Design tokens for colors, Tailwind for structure
+4. **Verify accessibility** - Focus states, ARIA labels, semantic HTML
+5. **Test responsiveness** - Mobile-first breakpoints
